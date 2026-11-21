@@ -1,0 +1,10 @@
+{
+  "appId": "com.skyfire.zombiehorde",
+  "appName": "DEADLINE: SKYFIRE",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "always",
+    "allowsLinkPreview": false,
+    "scrollEnabled": false
+  }
+}

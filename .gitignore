@@ -1,0 +1,13 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Capacitor / Node build artifacts (generated in CI)
+node_modules/
+www/
+ios/
+
+# OS metadata
+.DS_Store
+Thumbs.db

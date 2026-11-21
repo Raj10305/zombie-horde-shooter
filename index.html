@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="SKYFIRE" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>DEADLINE: SKYFIRE — 2D Zombie Horde Shooter</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="lowHpVignette" class="vignette hidden"></div>
+
+    <!-- TOP HUD -->
+    <header id="hudTop" class="hud-top hidden">
+      <div class="hud-panel hud-left">
+        <div class="stat-row">
+          <span class="stat-label">HP</span>
+          <div class="bar-track bar-hp">
+            <div id="hpBar" class="bar-fill"></div>
+          </div>
+          <span id="hpText" class="stat-val">100 / 100</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">ARMOR</span>
+          <div class="bar-track bar-armor">
+            <div id="armorBar" class="bar-fill"></div>
+          </div>
+          <span id="armorText" class="stat-val">50 / 100</span>
+        </div>
+        <div class="stat-row stat-row-compact">
+          <span class="stat-label">DASH</span>
+          <div class="bar-track bar-dash">
+            <div id="dashBar" class="bar-fill"></div>
+          </div>
+          <div class="economy-pills">
+            <span id="cashText" class="pill pill-cash">$0</span>
+            <span id="scoreText" class="pill pill-score">0 PTS</span>
+            <span id="comboBadge" class="pill pill-combo hidden">x<span id="comboText">0</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div class="wave-pill">
+          <span id="modeBadge" class="mode-tag">SURVIVAL</span>
+          <span id="waveText" class="wave-title">WAVE 1</span>
+          <span id="zombiesText" class="zombies-left">0 LEFT</span>
+          <button id="sandboxHordeBtn" class="btn-mini btn-danger hidden" title="Spawn Extra Horde [H]">+ HORDE [H]</button>
+        </div>
+        <div id="bossBarWrap" class="boss-bar-wrap hidden">
+          <div class="boss-header">
+            <span id="bossName">NECRO TITAN</span>
+            <span class="boss-tag">BOSS</span>
+          </div>
+          <div class="bar-track bar-boss">
+            <div id="bossBar" class="bar-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-panel hud-right">
+        <canvas id="minimapCanvas" width="160" height="120"></canvas>
+        <div class="hud-actions">
+          <button id="armoryBtn" class="btn-hud btn-armory" title="Open Armory & Upgrades [B]">ARMORY [B]</button>
+          <button id="muteBtn" class="btn-hud" title="Toggle Sound [M]">SFX ON [M]</button>
+          <button id="pauseBtn" class="btn-hud" title="Pause [P / Esc]">PAUSE [P]</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CENTER WAVE / ALERT BANNER -->
+    <div id="waveBanner" class="wave-banner hidden">
+      <div id="waveBannerTitle" class="banner-title">WAVE 1</div>
+      <div id="waveBannerSub" class="banner-sub">INCOMING HORDE</div>
+    </div>
+
+    <!-- BOTTOM WEAPON DOCK -->
+    <footer id="hudBottom" class="hud-bottom hidden">
+      <div id="activeWeaponHint" class="active-weapon-hint">M4 ASSAULT RIFLE • LV 1</div>
+      <div id="weaponDock" class="weapon-dock"></div>
+    </footer>
+
+    <!-- MOBILE TOUCH CONTROLS -->
+    <div id="touchControls" class="touch-controls hidden">
+      <div id="joyMoveZone" class="joy-zone joy-left">
+        <div id="joyMoveKnob" class="joy-knob">MOVE</div>
+      </div>
+      <div class="touch-right-wrap">
+        <div id="touchActionBtns" class="touch-actions">
+          <button id="touchDashBtn" type="button" class="btn-touch">DASH</button>
+          <button id="touchTurretBtn" type="button" class="btn-touch">TURRET</button>
+          <button id="touchOrbitalBtn" type="button" class="btn-touch">LASER</button>
+        </div>
+        <div id="joyAimZone" class="joy-zone joy-right">
+          <div id="joyAimKnob" class="joy-knob">AIM / FIRE</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- START / TITLE OVERLAY -->
+    <section id="startOverlay" class="overlay start-overlay">
+      <div class="start-plain">
+        <h1>DEADLINE: SKYFIRE</h1>
+        <div class="start-buttons">
+          <button id="btnSurvival" type="button">Survival</button>
+          <button id="btnSandbox" type="button">Sandbox</button>
+        </div>
+        <p class="start-controls-link">
+          <a href="controls.html">Controls</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ARMORY & UPGRADE OVERLAY -->
+    <section id="armoryOverlay" class="overlay hidden">
+      <div class="modal-card armory-card">
+        <div class="armory-header">
+          <div>
+            <h2>ARMORY &amp; AIR SUPPORT</h2>
+            <p class="muted">Equip any weapon for free or upgrade fire rate, damage, blast size, and aircraft squadron count.</p>
+          </div>
+          <div class="armory-wallet">
+            <span class="wallet-label">AVAILABLE FUNDS</span>
+            <span id="armoryCashText" class="wallet-amount">$0</span>
+          </div>
+        </div>
+
+        <div class="armory-toolbar">
+          <div id="armoryTabs" class="armory-tabs">
+            <button class="armory-tab active" data-cat="all">All Arsenal</button>
+            <button class="armory-tab" data-cat="guns">Guns</button>
+            <button class="armory-tab" data-cat="heavy">Heavy &amp; Sci-Fi</button>
+            <button class="armory-tab" data-cat="air">Airplanes &amp; Choppers</button>
+            <button class="armory-tab" data-cat="tactical">Tactical Support</button>
+          </div>
+          <div class="supply-actions">
+            <button id="buyMedkitBtn" class="btn-supply">+ Medkit ($120)</button>
+            <button id="buyArmorBtn" class="btn-supply">+ Full Armor ($180)</button>
+          </div>
+        </div>
+
+        <div id="armoryGrid" class="armory-grid"></div>
+
+        <div class="armory-footer">
+          <span class="muted">Tip: Upgrading Airplanes to Lv 3+ &amp; Lv 5 calls multi-plane formations!</span>
+          <button id="closeArmoryBtn" class="btn-primary">BACK TO BATTLE [B / ESC]</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAUSE OVERLAY -->
+    <section id="pauseOverlay" class="overlay hidden">
+      <div class="modal-card small-card">
+        <h2>COMBAT PAUSED</h2>
+        <p class="muted">Catch your breath or adjust your loadout.</p>
+        <div class="stack-buttons">
+          <button id="resumeBtn" class="btn-primary">RESUME BATTLE</button>
+          <button id="pauseArmoryBtn" class="btn-secondary">OPEN ARMORY [B]</button>
+          <button id="restartFromPauseBtn" class="btn-secondary">RESTART RUN</button>
+          <button id="mainMenuFromPauseBtn" class="btn-ghost">MAIN MENU</button>
+        </div>
+        <p class="pause-controls-link"><a href="controls.html">Controls</a></p>
+      </div>
+    </section>
+
+    <!-- GAME OVER OVERLAY -->
+    <section id="gameOverOverlay" class="overlay hidden">
+      <div class="modal-card small-card gameover-card">
+        <div class="title-kicker danger-text">PERIMETER OVERRUN</div>
+        <h2>MISSION ENDED</h2>
+        <div class="stats-summary">
+          <div class="summary-cell"><span>Wave Reached</span><b id="goWave">1</b></div>
+          <div class="summary-cell"><span>Zombies Eliminated</span><b id="goKills">0</b></div>
+          <div class="summary-cell"><span>Final Score</span><b id="goScore">0</b></div>
+          <div class="summary-cell"><span>Best Combo</span><b id="goBestCombo">x0</b></div>
+          <div class="summary-cell"><span>Top Weapon</span><b id="goFavWeapon">M4 Rifle</b></div>
+          <div class="summary-cell"><span>Best Record</span><b id="goHighScore">0</b></div>
+        </div>
+        <div class="stack-buttons">
+          <button id="playAgainBtn" class="btn-primary">PLAY AGAIN</button>
+          <button id="switchModeBtn" class="btn-secondary">TRY SANDBOX CHAOS</button>
+          <button id="goMenuBtn" class="btn-ghost">MAIN MENU</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script defer src="js/audio.js"></script>
+  <script defer src="js/weapons.js"></script>
+  <script defer src="js/map.js"></script>
+  <script defer src="js/entities.js"></script>
+  <script defer src="js/sprites.js"></script>
+  <script defer src="js/renderer.js"></script>
+  <script defer src="js/game.js"></script>
+</body>
+</html>
