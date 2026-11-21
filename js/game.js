@@ -76,8 +76,10 @@
     touchOrbitalBtn: document.getElementById("touchOrbitalBtn")
   };
 
-  var viewW = window.innerWidth;
-  var viewH = window.innerHeight;
+  var gameContainer = document.getElementById("gameContainer");
+  var viewW = (gameContainer && gameContainer.clientWidth) || window.innerWidth;
+  var viewH = (gameContainer && gameContainer.clientHeight) || window.innerHeight;
+  var viewScale = 1;
 
   var app = {
     phase: "menu", // menu | playing | paused | armory | gameover
@@ -139,8 +141,9 @@
 
   function resizeCanvas() {
     var dpr = Math.min(2, window.devicePixelRatio || 1);
-    viewW = window.innerWidth;
-    viewH = window.innerHeight;
+    viewW = (gameContainer && gameContainer.clientWidth) || window.innerWidth;
+    viewH = (gameContainer && gameContainer.clientHeight) || window.innerHeight;
+    viewScale = Math.min(1, Math.max(0.65, Math.min(viewW / 1100, viewH / 640)));
     canvas.width = Math.floor(viewW * dpr);
     canvas.height = Math.floor(viewH * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -282,11 +285,13 @@
   }
 
   function getViewBounds() {
+    var worldW = viewW / viewScale;
+    var worldH = viewH / viewScale;
     return {
-      left: app.camera.x - viewW / 2,
-      right: app.camera.x + viewW / 2,
-      top: app.camera.y - viewH / 2,
-      bottom: app.camera.y + viewH / 2
+      left: app.camera.x - worldW / 2,
+      right: app.camera.x + worldW / 2,
+      top: app.camera.y - worldH / 2,
+      bottom: app.camera.y + worldH / 2
     };
   }
 
@@ -367,9 +372,10 @@
     }
     btn.appendChild(pipsDiv);
 
-    btn.addEventListener("click", function () {
+    function activateSlot() {
       if (!app.state || app.phase !== "playing") return;
       if (isTactical) {
+        updateInputAxes();
         window.GameEntities.triggerTactical(
           app.state,
           def.id,
@@ -380,7 +386,40 @@
       } else {
         selectWeapon(def.id);
       }
+    }
+
+    // Multi-touch support: allows switching guns immediately while moving with the joystick
+    var slotTouchId = null;
+    var slotStartX = 0;
+    var slotStartY = 0;
+    btn.addEventListener("touchstart", function (e) {
+      if (e.changedTouches.length > 0) {
+        var t = e.changedTouches[0];
+        slotTouchId = t.identifier;
+        slotStartX = t.clientX;
+        slotStartY = t.clientY;
+      }
+    }, { passive: true });
+
+    btn.addEventListener("touchend", function (e) {
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (t.identifier === slotTouchId) {
+          slotTouchId = null;
+          if (Math.hypot(t.clientX - slotStartX, t.clientY - slotStartY) < 16) {
+            e.preventDefault();
+            activateSlot();
+          }
+          break;
+        }
+      }
+    }, { passive: false });
+
+    btn.addEventListener("touchcancel", function () {
+      slotTouchId = null;
     });
+
+    btn.addEventListener("click", activateSlot);
 
     return { el: btn, cdOverlay: cdOverlay, pips: pips, isTactical: isTactical };
   }
@@ -731,15 +770,15 @@
         var ny = app.touch.aimY / aimMag;
         app.input.mouseWorldX = app.state.player.x + nx * 260;
         app.input.mouseWorldY = app.state.player.y + ny * 260;
-        app.input.mouseScreenX = app.input.mouseWorldX - app.camera.x + viewW / 2;
-        app.input.mouseScreenY = app.input.mouseWorldY - app.camera.y + viewH / 2;
+        app.input.mouseScreenX = (app.input.mouseWorldX - app.camera.x) * viewScale + viewW / 2;
+        app.input.mouseScreenY = (app.input.mouseWorldY - app.camera.y) * viewScale + viewH / 2;
         app.input.firing = aimMag > 0.18;
         return;
       }
     }
 
-    app.input.mouseWorldX = app.camera.x - viewW / 2 + app.input.mouseScreenX;
-    app.input.mouseWorldY = app.camera.y - viewH / 2 + app.input.mouseScreenY;
+    app.input.mouseWorldX = app.camera.x + (app.input.mouseScreenX - viewW / 2) / viewScale;
+    app.input.mouseWorldY = app.camera.y + (app.input.mouseScreenY - viewH / 2) / viewScale;
   }
 
   var lastTime = performance.now();
@@ -754,10 +793,12 @@
 
       // Smooth camera tracking with subtle mouse lookahead
       var p = app.state.player;
+      var worldW = viewW / viewScale;
+      var worldH = viewH / viewScale;
       var lookX = Math.max(-90, Math.min(90, (app.input.mouseScreenX - viewW / 2) * 0.14));
       var lookY = Math.max(-70, Math.min(70, (app.input.mouseScreenY - viewH / 2) * 0.14));
-      var targetCamX = Math.max(viewW * 0.25, Math.min(app.map.width - viewW * 0.25, p.x + lookX));
-      var targetCamY = Math.max(viewH * 0.25, Math.min(app.map.height - viewH * 0.25, p.y + lookY));
+      var targetCamX = Math.max(worldW * 0.25, Math.min(app.map.width - worldW * 0.25, p.x + lookX));
+      var targetCamY = Math.max(worldH * 0.25, Math.min(app.map.height - worldH * 0.25, p.y + lookY));
       app.camera.x += (targetCamX - app.camera.x) * Math.min(1, dt * 8);
       app.camera.y += (targetCamY - app.camera.y) * Math.min(1, dt * 8);
 
@@ -769,8 +810,8 @@
     }
 
     if (app.state) {
-      window.GameRenderer.renderWorld(ctx, app.state, app.camera, app.phase === "playing" ? app.input : null, viewW, viewH);
-      window.GameRenderer.renderMinimap(miniCtx, app.state, app.camera, viewW, viewH);
+      window.GameRenderer.renderWorld(ctx, app.state, app.camera, app.phase === "playing" ? app.input : null, viewW, viewH, viewScale);
+      window.GameRenderer.renderMinimap(miniCtx, app.state, app.camera, viewW / viewScale, viewH / viewScale);
     }
 
     requestAnimationFrame(gameLoop);
@@ -778,6 +819,12 @@
 
   // Event Wiring
   window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("orientationchange", function () {
+    setTimeout(resizeCanvas, 120);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", resizeCanvas);
+  }
 
   window.addEventListener("keydown", function (e) {
     if (["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) >= 0) {
@@ -881,7 +928,7 @@
     var cy = rect.top + rect.height / 2;
     var dx = touch.clientX - cx;
     var dy = touch.clientY - cy;
-    var maxR = 46;
+    var maxR = Math.max(20, (rect.width - (knob.offsetWidth || 36)) / 2);
     var dist = Math.hypot(dx, dy);
     if (dist > maxR) {
       dx = (dx / dist) * maxR;
@@ -1014,17 +1061,27 @@
   canvas.addEventListener("touchend", endCanvasTouch);
   canvas.addEventListener("touchcancel", endCanvasTouch);
 
-  dom.touchDashBtn.addEventListener("click", function () {
+  function bindTouchAction(btn, handler) {
+    btn.addEventListener("touchstart", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.SoundEngine.unlock();
+      handler();
+    }, { passive: false });
+    btn.addEventListener("click", handler);
+  }
+
+  bindTouchAction(dom.touchDashBtn, function () {
     if (app.phase !== "playing" || !app.state) return;
     updateInputAxes();
     window.GameEntities.triggerDash(app.state, app.input.moveX, app.input.moveY, window.SoundEngine);
   });
-  dom.touchTurretBtn.addEventListener("click", function () {
+  bindTouchAction(dom.touchTurretBtn, function () {
     if (app.phase !== "playing" || !app.state) return;
     updateInputAxes();
     window.GameEntities.triggerTactical(app.state, "turret", app.input.mouseWorldX, app.input.mouseWorldY, window.SoundEngine);
   });
-  dom.touchOrbitalBtn.addEventListener("click", function () {
+  bindTouchAction(dom.touchOrbitalBtn, function () {
     if (app.phase !== "playing" || !app.state) return;
     updateInputAxes();
     window.GameEntities.triggerTactical(app.state, "orbital", app.input.mouseWorldX, app.input.mouseWorldY, window.SoundEngine);

@@ -1,24 +1,30 @@
 (function () {
   "use strict";
 
-  function renderWorld(ctx, state, camera, input, viewW, viewH) {
+  function renderWorld(ctx, state, camera, input, viewW, viewH, zoom) {
+    var scale = zoom || 1;
+    var worldViewW = viewW / scale;
+    var worldViewH = viewH / scale;
     ctx.save();
     ctx.fillStyle = "#eceff3";
     ctx.fillRect(0, 0, viewW, viewH);
 
     var shakeX = state.events.screenShake > 0 ? (Math.random() - 0.5) * state.events.screenShake : 0;
     var shakeY = state.events.screenShake > 0 ? (Math.random() - 0.5) * state.events.screenShake : 0;
-    var camLeft = camera.x - viewW / 2 + shakeX;
-    var camTop = camera.y - viewH / 2 + shakeY;
+    var camLeft = camera.x - worldViewW / 2 + shakeX;
+    var camTop = camera.y - worldViewH / 2 + shakeY;
 
     ctx.save();
+    if (scale !== 1) {
+      ctx.scale(scale, scale);
+    }
     ctx.translate(-camLeft, -camTop);
 
     // 1. Pre-rendered terrain & persistent decals (clipped to viewport)
     var sx = Math.max(0, Math.floor(camLeft));
     var sy = Math.max(0, Math.floor(camTop));
-    var ex = Math.min(state.map.width, Math.ceil(camLeft + viewW));
-    var ey = Math.min(state.map.height, Math.ceil(camTop + viewH));
+    var ex = Math.min(state.map.width, Math.ceil(camLeft + worldViewW));
+    var ey = Math.min(state.map.height, Math.ceil(camTop + worldViewH));
     var sw = ex - sx;
     var sh = ey - sy;
     if (sw > 0 && sh > 0) {
@@ -39,7 +45,7 @@
     }
 
     // 4. Obstacles
-    drawObstacles(ctx, state.map.obstacles, camLeft, camTop, viewW, viewH);
+    drawObstacles(ctx, state.map.obstacles, camLeft, camTop, worldViewW, worldViewH);
 
     // 5. Pickups
     drawPickups(ctx, state.pickups);
@@ -48,7 +54,7 @@
     drawTurrets(ctx, state.turrets);
 
     // 7. Zombies
-    drawZombies(ctx, state.zombies, camLeft, camTop, viewW, viewH);
+    drawZombies(ctx, state.zombies, camLeft, camTop, worldViewW, worldViewH);
 
     // 8. Player
     drawPlayer(ctx, state.player);

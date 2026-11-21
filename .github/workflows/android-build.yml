@@ -39,6 +39,16 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Configure Android Landscape Fullscreen Manifest
+        run: |
+          python -c '
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p, "r", encoding="utf-8").read()
+          if "screenOrientation" not in s:
+              s = s.replace("<activity", "<activity android:screenOrientation=\"sensorLandscape\"", 1)
+              open(p, "w", encoding="utf-8").write(s)
+          '
+
       - name: Build Android Debug APK (Immediately Installable)
         run: |
           cd android
