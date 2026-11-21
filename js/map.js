@@ -4,8 +4,60 @@
   var WORLD_W = 2400;
   var WORLD_H = 1800;
 
-  function createObstacles() {
-    // Carefully laid out urban wasteland cover with wide avenues & clear central plaza
+  var MAP_DEFINITIONS = {
+    outpost: {
+      id: "outpost",
+      name: "Military Outpost",
+      subtitle: "Fortified perimeter with central helipad & concrete bunkers",
+      theme: "light"
+    },
+    ruins: {
+      id: "ruins",
+      name: "Quarantine City Ruins",
+      subtitle: "Downtown urban ruins, narrow alleys, car wrecks & biohazard drums",
+      theme: "urban"
+    }
+  };
+
+  function createObstacles(mapId) {
+    if (mapId === "ruins") {
+      return [
+        // Corner skyscraper ruined foundations (L-shaped urban barricades)
+        { x: 360, y: 300, w: 260, h: 54, type: "building", color: "#334155" },
+        { x: 360, y: 354, w: 54, h: 170, type: "building", color: "#334155" },
+
+        { x: 1780, y: 300, w: 260, h: 54, type: "building", color: "#334155" },
+        { x: 1986, y: 354, w: 54, h: 170, type: "building", color: "#334155" },
+
+        { x: 360, y: 1446, w: 260, h: 54, type: "building", color: "#334155" },
+        { x: 360, y: 1276, w: 54, h: 170, type: "building", color: "#334155" },
+
+        { x: 1780, y: 1446, w: 260, h: 54, type: "building", color: "#334155" },
+        { x: 1986, y: 1276, w: 54, h: 170, type: "building", color: "#334155" },
+
+        // Inner street commercial buildings & brick store ruins
+        { x: 720, y: 560, w: 170, h: 65, type: "building", color: "#475569" },
+        { x: 1510, y: 560, w: 170, h: 65, type: "building", color: "#475569" },
+        { x: 720, y: 1175, w: 170, h: 65, type: "building", color: "#475569" },
+        { x: 1510, y: 1175, w: 170, h: 65, type: "building", color: "#475569" },
+
+        // Center highway bus barricades (destroyed quarantine transit)
+        { x: 1110, y: 360, w: 180, h: 52, type: "wreck_bus", color: "#78350f" },
+        { x: 1110, y: 1388, w: 180, h: 52, type: "wreck_bus", color: "#78350f" },
+
+        // Flanking destroyed car wrecks
+        { x: 310, y: 840, w: 56, h: 120, type: "car_wreck", color: "#854d0e" },
+        { x: 2034, y: 840, w: 56, h: 120, type: "car_wreck", color: "#854d0e" },
+
+        // Biohazard toxic drum clusters & sandbag checkpoints
+        { x: 920, y: 865, w: 54, h: 70, type: "biohazard", color: "#4d7c0f" },
+        { x: 1426, y: 865, w: 54, h: 70, type: "biohazard", color: "#4d7c0f" },
+        { x: 1140, y: 700, w: 120, h: 42, type: "sandbag", color: "#64748b" },
+        { x: 1140, y: 1058, w: 120, h: 42, type: "sandbag", color: "#64748b" }
+      ];
+    }
+
+    // Default: Military Outpost cover with wide avenues & central plaza
     return [
       // Four outer quadrant concrete walls/bunkers
       { x: 460, y: 360, w: 170, h: 42, type: "concrete", color: "#64748b" },
@@ -32,20 +84,122 @@
       { x: 1140, y: 250, w: 120, h: 52, type: "barrier", color: "#6b7280" },
       { x: 1140, y: 1498, w: 120, h: 52, type: "barrier", color: "#6b7280" },
 
-      // Inner plaza corner cover (kept wide open around spawn 1200,900)
+      // Inner plaza corner cover
       { x: 930, y: 860, w: 44, h: 80, type: "sandbag", color: "#78716c" },
       { x: 1426, y: 860, w: 44, h: 80, type: "sandbag", color: "#78716c" }
     ];
   }
 
-  function buildTerrainCanvas(w, h) {
+  function buildTerrainCanvas(w, h, mapId) {
     if (typeof document === "undefined") return null;
     var c = document.createElement("canvas");
     c.width = w;
     c.height = h;
     var ctx = c.getContext("2d");
 
-    // Simple light concrete ground
+    if (mapId === "ruins") {
+      // Atmospheric post-apocalyptic urban ruins: dark cracked asphalt & debris
+      ctx.fillStyle = "#1e242c";
+      ctx.fillRect(0, 0, w, h);
+
+      // Cracked city sidewalk grid
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 1.5;
+      for (var rx = 0; rx <= w; rx += 100) {
+        ctx.beginPath();
+        ctx.moveTo(rx, 0);
+        ctx.lineTo(rx, h);
+        ctx.stroke();
+      }
+      for (var ry = 0; ry <= h; ry += 100) {
+        ctx.beginPath();
+        ctx.moveTo(0, ry);
+        ctx.lineTo(w, ry);
+        ctx.stroke();
+      }
+
+      // Main damaged boulevard avenues (dual carriageway)
+      ctx.fillStyle = "#2d3748";
+      ctx.fillRect(0, h / 2 - 160, w, 320);
+      ctx.fillRect(w / 2 - 160, 0, 320, h);
+
+      // Cracked central intersection plaza
+      ctx.fillStyle = "#252f3e";
+      ctx.fillRect(w / 2 - 200, h / 2 - 200, 400, 400);
+
+      // Pedestrian crosswalk stripes
+      ctx.fillStyle = "rgba(226, 232, 240, 0.28)";
+      var stripeW = 12;
+      for (var cw = -150; cw <= 150; cw += 26) {
+        // Horizontal avenue crosswalks
+        ctx.fillRect(w / 2 - 220, h / 2 + cw, stripeW, 18);
+        ctx.fillRect(w / 2 + 208, h / 2 + cw, stripeW, 18);
+        // Vertical avenue crosswalks
+        ctx.fillRect(w / 2 + cw, h / 2 - 220, 18, stripeW);
+        ctx.fillRect(w / 2 + cw, h / 2 + 208, 18, stripeW);
+      }
+
+      // Yellow hazard caution road stripes (decayed quarantine markings)
+      ctx.strokeStyle = "rgba(202, 138, 4, 0.45)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([32, 24]);
+      ctx.beginPath();
+      ctx.moveTo(0, h / 2 - 3);
+      ctx.lineTo(w / 2 - 210, h / 2 - 3);
+      ctx.moveTo(w / 2 + 210, h / 2 - 3);
+      ctx.lineTo(w, h / 2 - 3);
+      ctx.moveTo(w / 2 - 3, 0);
+      ctx.lineTo(w / 2 - 3, h / 2 - 210);
+      ctx.moveTo(w / 2 - 3, h / 2 + 210);
+      ctx.lineTo(w / 2 - 3, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Hazard biohazard sector text stencil in central plaza
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      ctx.fillStyle = "rgba(234, 179, 8, 0.18)";
+      ctx.font = "900 32px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("QUARANTINE SECTOR 4", 0, -28);
+      ctx.font = "700 16px monospace";
+      ctx.fillText("[BIOHAZARD ACTIVE - AUTHORIZED ONLY]", 0, 8);
+
+      // Biohazard circle emblem
+      ctx.strokeStyle = "rgba(234, 179, 8, 0.25)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([14, 10]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 150, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Debris, oil slicks, asphalt cracks
+      var seed2 = 4242;
+      function rand2() {
+        seed2 = (seed2 * 16807) % 2147483647;
+        return (seed2 - 1) / 2147483646;
+      }
+      for (var d = 0; d < 800; d++) {
+        var dx = rand2() * w;
+        var dy = rand2() * h;
+        var dr = 1.5 + rand2() * 4.5;
+        ctx.fillStyle = rand2() > 0.4 ? "rgba(15, 23, 42, 0.65)" : "rgba(100, 116, 139, 0.22)";
+        ctx.beginPath();
+        ctx.arc(dx, dy, dr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Outer quarantine border
+      ctx.strokeStyle = "rgba(220, 38, 38, 0.7)";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(10, 10, w - 20, h - 20);
+
+      return c;
+    }
+
+    // Default: Military Outpost (Clean concrete base)
     ctx.fillStyle = "#eceff3";
     ctx.fillRect(0, 0, w, h);
 
@@ -147,9 +301,11 @@
   var NAV_TOTAL = NAV_COLS * NAV_ROWS;
   var NAV_INF = 0x3fffffff;
 
-  function createMap() {
-    var obstacles = createObstacles();
-    var terrainCanvas = buildTerrainCanvas(WORLD_W, WORLD_H);
+  function createMap(mapId) {
+    var validId = (mapId && MAP_DEFINITIONS[mapId]) ? mapId : "outpost";
+    var meta = MAP_DEFINITIONS[validId];
+    var obstacles = createObstacles(validId);
+    var terrainCanvas = buildTerrainCanvas(WORLD_W, WORLD_H, validId);
     var decalCanvas = createDecalCanvas(WORLD_W, WORLD_H);
     var decalCtx = decalCanvas ? decalCanvas.getContext("2d") : null;
 
@@ -348,6 +504,10 @@
     }
 
     var map = {
+      id: validId,
+      name: meta.name,
+      subtitle: meta.subtitle,
+      theme: meta.theme,
       width: WORLD_W,
       height: WORLD_H,
       obstacles: obstacles,
@@ -530,6 +690,7 @@
   window.GameMap = {
     WORLD_W: WORLD_W,
     WORLD_H: WORLD_H,
+    MAP_DEFINITIONS: MAP_DEFINITIONS,
     createMap: createMap
   };
 })();

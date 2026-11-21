@@ -21,6 +21,7 @@
     scoreText: document.getElementById("scoreText"),
     comboBadge: document.getElementById("comboBadge"),
     comboText: document.getElementById("comboText"),
+    mapBadge: document.getElementById("mapBadge"),
     waveText: document.getElementById("waveText"),
     zombiesText: document.getElementById("zombiesText"),
     modeBadge: document.getElementById("modeBadge"),
@@ -38,6 +39,7 @@
     activeWeaponHint: document.getElementById("activeWeaponHint"),
 
     startOverlay: document.getElementById("startOverlay"),
+    mapSelect: document.getElementById("mapSelect"),
     btnSurvival: document.getElementById("btnSurvival"),
     btnSandbox: document.getElementById("btnSandbox"),
 
@@ -50,12 +52,14 @@
     closeArmoryBtn: document.getElementById("closeArmoryBtn"),
 
     pauseOverlay: document.getElementById("pauseOverlay"),
+    pauseMapSelect: document.getElementById("pauseMapSelect"),
     resumeBtn: document.getElementById("resumeBtn"),
     pauseArmoryBtn: document.getElementById("pauseArmoryBtn"),
     restartFromPauseBtn: document.getElementById("restartFromPauseBtn"),
     mainMenuFromPauseBtn: document.getElementById("mainMenuFromPauseBtn"),
 
     gameOverOverlay: document.getElementById("gameOverOverlay"),
+    goMapSelect: document.getElementById("goMapSelect"),
     goWave: document.getElementById("goWave"),
     goKills: document.getElementById("goKills"),
     goScore: document.getElementById("goScore"),
@@ -84,6 +88,7 @@
   var app = {
     phase: "menu", // menu | playing | paused | armory | gameover
     mode: "survival",
+    currentMapId: "outpost",
     armoryFilter: "all",
     map: null,
     state: null,
@@ -176,10 +181,25 @@
     app.wave.bannerTimer = duration || 2.6;
   }
 
-  function startRun(mode) {
+  function syncMapSelectors(id) {
+    if (dom.mapSelect) dom.mapSelect.value = id;
+    if (dom.pauseMapSelect) dom.pauseMapSelect.value = id;
+    if (dom.goMapSelect) dom.goMapSelect.value = id;
+  }
+
+  function startRun(mode, mapId) {
     window.SoundEngine.unlock();
     app.mode = mode;
-    app.map = window.GameMap.createMap();
+    if (mapId) {
+      app.currentMapId = mapId;
+    } else if (dom.mapSelect && dom.mapSelect.value) {
+      app.currentMapId = dom.mapSelect.value;
+    } else {
+      app.currentMapId = app.currentMapId || "outpost";
+    }
+    syncMapSelectors(app.currentMapId);
+
+    app.map = window.GameMap.createMap(app.currentMapId);
     app.state = window.GameEntities.createWorldState(mode, app.map);
     app.camera.x = app.state.player.x;
     app.camera.y = app.state.player.y;
@@ -203,6 +223,10 @@
     dom.hudBottom.classList.remove("hidden");
     dom.lowHpVignette.classList.add("hidden");
 
+    if (dom.mapBadge) {
+      dom.mapBadge.textContent = app.map.id === "ruins" ? "RUINS" : "OUTPOST";
+    }
+
     if (mode === "sandbox") {
       dom.modeBadge.textContent = "SANDBOX CHAOS";
       dom.modeBadge.classList.add("sandbox");
@@ -223,20 +247,20 @@
   function buildWaveQueue(waveNum, mode) {
     var queue = [];
     var total = mode === "sandbox"
-      ? 26 + Math.min(70, waveNum * 8)
-      : 16 + Math.floor(waveNum * 7.5 + Math.pow(waveNum, 1.32));
-    var maxExploders = waveNum >= 4 ? Math.min(3, Math.max(1, Math.floor((waveNum - 2) / 2))) : 0;
+      ? 36 + Math.min(110, waveNum * 12)
+      : 24 + Math.floor(waveNum * 10 + Math.pow(waveNum, 1.45));
+    var maxExploders = waveNum >= 3 ? Math.min(4, Math.max(1, Math.floor((waveNum - 1) / 2))) : 0;
     var exploderCount = 0;
 
     for (var i = 0; i < total; i++) {
       var r = Math.random();
-      if (waveNum >= 4 && exploderCount < maxExploders && r < 0.03) {
+      if (waveNum >= 3 && exploderCount < maxExploders && r < 0.05) {
         queue.push("exploder");
         exploderCount += 1;
-      } else if (waveNum >= 3 && r < 0.22) queue.push("brute");
-      else if (r < 0.34) queue.push("spitter");
-      else if (r < 0.44) queue.push("screamer");
-      else if (r < 0.68) queue.push("runner");
+      } else if (waveNum >= 2 && r < 0.24) queue.push("brute");
+      else if (r < 0.38) queue.push("spitter");
+      else if (r < 0.50) queue.push("screamer");
+      else if (r < 0.76) queue.push("runner");
       else queue.push("shambler");
     }
 
@@ -726,14 +750,14 @@
     if (app.wave.spawnQueue.length > 0) {
       app.wave.spawnTimer -= dt;
       if (app.wave.spawnTimer <= 0) {
-        var batch = Math.min(app.wave.spawnQueue.length, 1 + Math.floor(app.wave.number / 4));
+        var batch = Math.min(app.wave.spawnQueue.length, 2 + Math.floor(app.wave.number / 2));
         var bounds = getViewBounds();
-        var scale = 1 + (app.wave.number - 1) * 0.14;
+        var scale = 1 + (app.wave.number - 1) * 0.22;
         for (var i = 0; i < batch; i++) {
           var zType = app.wave.spawnQueue.shift();
           window.GameEntities.spawnZombieAtEdge(app.state, zType, scale, bounds);
         }
-        app.wave.spawnTimer = Math.max(0.16, 0.62 - app.wave.number * 0.03);
+        app.wave.spawnTimer = Math.max(0.10, 0.45 - app.wave.number * 0.035);
       }
     } else if (app.state.zombies.length === 0) {
       if (app.wave.intermission <= 0) {
@@ -1151,14 +1175,40 @@
 
   dom.resumeBtn.addEventListener("click", togglePause);
   dom.pauseArmoryBtn.addEventListener("click", openArmory);
-  dom.restartFromPauseBtn.addEventListener("click", function () { startRun(app.mode); });
+  dom.restartFromPauseBtn.addEventListener("click", function () {
+    var chosenMap = dom.pauseMapSelect ? dom.pauseMapSelect.value : app.currentMapId;
+    startRun(app.mode, chosenMap);
+  });
   dom.mainMenuFromPauseBtn.addEventListener("click", returnToMenu);
 
-  dom.playAgainBtn.addEventListener("click", function () { startRun(app.mode); });
+  dom.playAgainBtn.addEventListener("click", function () {
+    var chosenMap = dom.goMapSelect ? dom.goMapSelect.value : app.currentMapId;
+    startRun(app.mode, chosenMap);
+  });
   dom.switchModeBtn.addEventListener("click", function () {
-    startRun(app.mode === "survival" ? "sandbox" : "survival");
+    var chosenMap = dom.goMapSelect ? dom.goMapSelect.value : app.currentMapId;
+    startRun(app.mode === "survival" ? "sandbox" : "survival", chosenMap);
   });
   dom.goMenuBtn.addEventListener("click", returnToMenu);
+
+  if (dom.mapSelect) {
+    dom.mapSelect.addEventListener("change", function () {
+      app.currentMapId = dom.mapSelect.value;
+      syncMapSelectors(app.currentMapId);
+    });
+  }
+  if (dom.pauseMapSelect) {
+    dom.pauseMapSelect.addEventListener("change", function () {
+      app.currentMapId = dom.pauseMapSelect.value;
+      syncMapSelectors(app.currentMapId);
+    });
+  }
+  if (dom.goMapSelect) {
+    dom.goMapSelect.addEventListener("change", function () {
+      app.currentMapId = dom.goMapSelect.value;
+      syncMapSelectors(app.currentMapId);
+    });
+  }
 
   // Initialize
   resizeCanvas();

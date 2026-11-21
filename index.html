@@ -49,6 +49,7 @@
 
       <div class="hud-center">
         <div class="wave-pill">
+          <span id="mapBadge" class="mode-tag map-tag">OUTPOST</span>
           <span id="modeBadge" class="mode-tag">SURVIVAL</span>
           <span id="waveText" class="wave-title">WAVE 1</span>
           <span id="zombiesText" class="zombies-left">0 LEFT</span>
@@ -108,6 +109,13 @@
     <section id="startOverlay" class="overlay start-overlay">
       <div class="start-plain">
         <h1>DEADLINE: SKYFIRE</h1>
+        <div class="start-map-row">
+          <label for="mapSelect">MAP:</label>
+          <select id="mapSelect">
+            <option value="outpost">Military Outpost</option>
+            <option value="ruins">Quarantine City Ruins</option>
+          </select>
+        </div>
         <div class="start-buttons">
           <button id="btnSurvival" type="button">Survival</button>
           <button id="btnSandbox" type="button">Sandbox</button>
@@ -160,6 +168,13 @@
       <div class="modal-card small-card">
         <h2>COMBAT PAUSED</h2>
         <p class="muted">Catch your breath or adjust your loadout.</p>
+        <div class="pause-map-row">
+          <label for="pauseMapSelect">Map:</label>
+          <select id="pauseMapSelect">
+            <option value="outpost">Military Outpost</option>
+            <option value="ruins">Quarantine City Ruins</option>
+          </select>
+        </div>
         <div class="stack-buttons">
           <button id="resumeBtn" class="btn-primary">RESUME BATTLE</button>
           <button id="pauseArmoryBtn" class="btn-secondary">OPEN ARMORY [B]</button>
@@ -182,6 +197,13 @@
           <div class="summary-cell"><span>Best Combo</span><b id="goBestCombo">x0</b></div>
           <div class="summary-cell"><span>Top Weapon</span><b id="goFavWeapon">M4 Rifle</b></div>
           <div class="summary-cell"><span>Best Record</span><b id="goHighScore">0</b></div>
+        </div>
+        <div class="go-map-row">
+          <label for="goMapSelect">Map:</label>
+          <select id="goMapSelect">
+            <option value="outpost">Military Outpost</option>
+            <option value="ruins">Quarantine City Ruins</option>
+          </select>
         </div>
         <div class="stack-buttons">
           <button id="playAgainBtn" class="btn-primary">PLAY AGAIN</button>

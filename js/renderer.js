@@ -6,7 +6,7 @@
     var worldViewW = viewW / scale;
     var worldViewH = viewH / scale;
     ctx.save();
-    ctx.fillStyle = "#eceff3";
+    ctx.fillStyle = (state.map && state.map.theme === "urban") ? "#1a202c" : "#eceff3";
     ctx.fillRect(0, 0, viewW, viewH);
 
     var shakeX = state.events.screenShake > 0 ? (Math.random() - 0.5) * state.events.screenShake : 0;
@@ -192,7 +192,7 @@
       ctx.lineWidth = 2;
       ctx.strokeRect(ob.x + 1, ob.y + 1, ob.w - 2, ob.h - 2);
 
-      // Detail lines for crates/barriers
+      // Detail lines for crates/barriers/vehicles/buildings
       if (ob.type === "crate") {
         ctx.strokeStyle = "rgba(0,0,0,0.28)";
         ctx.lineWidth = 2;
@@ -203,6 +203,34 @@
       } else if (ob.type === "barrier") {
         ctx.fillStyle = "rgba(217, 119, 6, 0.55)";
         ctx.fillRect(ob.x + 4, ob.y + 4, ob.w - 8, 6);
+      } else if (ob.type === "building") {
+        // Rooftop AC vent and structure roof lines
+        ctx.fillStyle = "rgba(15, 23, 42, 0.4)";
+        ctx.fillRect(ob.x + 10, ob.y + 10, Math.min(28, ob.w - 20), Math.min(24, ob.h - 20));
+        ctx.strokeStyle = "rgba(226, 232, 240, 0.15)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(ob.x + 6, ob.y + 6, ob.w - 12, ob.h - 12);
+      } else if (ob.type === "wreck_bus") {
+        // Bus windshield and window rows
+        ctx.fillStyle = "rgba(15, 23, 42, 0.5)";
+        ctx.fillRect(ob.x + 8, ob.y + 6, 18, ob.h - 12);
+        ctx.fillRect(ob.x + ob.w - 26, ob.y + 6, 18, ob.h - 12);
+        ctx.fillStyle = "rgba(251, 191, 36, 0.4)";
+        ctx.fillRect(ob.x + 32, ob.y + 10, ob.w - 64, 4);
+      } else if (ob.type === "car_wreck") {
+        ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
+        ctx.fillRect(ob.x + 6, ob.y + 8, ob.w - 12, 16);
+        ctx.fillRect(ob.x + 6, ob.y + ob.h - 24, ob.w - 12, 16);
+      } else if (ob.type === "biohazard") {
+        // Radioactive drum cluster styling
+        ctx.fillStyle = "#84cc16";
+        ctx.beginPath();
+        ctx.arc(ob.x + ob.w * 0.35, ob.y + ob.h * 0.4, 14, 0, Math.PI * 2);
+        ctx.arc(ob.x + ob.w * 0.65, ob.y + ob.h * 0.6, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#1a2e05";
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
     }
   }

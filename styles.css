@@ -139,6 +139,26 @@ body.controls-body {
   gap: 12px;
 }
 
+.start-map-row, .pause-map-row, .go-map-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.start-map-row select, .pause-map-row select, .go-map-row select {
+  padding: 6px 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid #333333;
+  cursor: pointer;
+}
+
 .start-buttons button {
   padding: 10px 24px;
   font-size: 15px;
@@ -320,6 +340,12 @@ body.controls-body {
   background: #ede9fe;
   color: #5b21b6;
   border-color: #7c3aed;
+}
+
+.mode-tag.map-tag {
+  background: #f1f5f9;
+  border-color: #64748b;
+  color: #0f172a;
 }
 
 .wave-title {

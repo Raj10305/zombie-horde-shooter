@@ -18,7 +18,36 @@ _DIRS_R = (0, 0, 1, -1, 1, -1, 1, -1)
 _DIRS_COST = (10, 10, 10, 10, 14, 14, 14, 14)
 
 
-def create_obstacles():
+def create_obstacles(map_id="outpost"):
+    if map_id == "ruins":
+        return [
+            # Corner skyscraper ruined foundations (L-shaped urban barricades)
+            {"x": 360, "y": 300, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
+            {"x": 360, "y": 354, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
+            {"x": 1780, "y": 300, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
+            {"x": 1986, "y": 354, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
+            {"x": 360, "y": 1446, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
+            {"x": 360, "y": 1276, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
+            {"x": 1780, "y": 1446, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
+            {"x": 1986, "y": 1276, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
+            # Inner street commercial buildings & brick store ruins
+            {"x": 720, "y": 560, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
+            {"x": 1510, "y": 560, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
+            {"x": 720, "y": 1175, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
+            {"x": 1510, "y": 1175, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
+            # Center highway bus barricades (destroyed quarantine transit)
+            {"x": 1110, "y": 360, "w": 180, "h": 52, "type": "wreck_bus", "color": (120, 53, 15)},
+            {"x": 1110, "y": 1388, "w": 180, "h": 52, "type": "wreck_bus", "color": (120, 53, 15)},
+            # Flanking destroyed car wrecks
+            {"x": 310, "y": 840, "w": 56, "h": 120, "type": "car_wreck", "color": (133, 77, 14)},
+            {"x": 2034, "y": 840, "w": 56, "h": 120, "type": "car_wreck", "color": (133, 77, 14)},
+            # Biohazard toxic drum clusters & sandbag checkpoints
+            {"x": 920, "y": 865, "w": 54, "h": 70, "type": "biohazard", "color": (77, 124, 15)},
+            {"x": 1426, "y": 865, "w": 54, "h": 70, "type": "biohazard", "color": (77, 124, 15)},
+            {"x": 1140, "y": 700, "w": 120, "h": 42, "type": "sandbag", "color": (100, 116, 139)},
+            {"x": 1140, "y": 1058, "w": 120, "h": 42, "type": "sandbag", "color": (100, 116, 139)},
+        ]
+
     return [
         # Four outer quadrant concrete L-bunkers
         {"x": 460, "y": 360, "w": 170, "h": 42, "type": "concrete", "color": (100, 116, 139)},
@@ -66,10 +95,11 @@ def _draw_dashed_line(pygame, surf, color, p1, p2, width=3, dash=24, gap=18):
 
 
 class GameMap:
-    def __init__(self):
+    def __init__(self, map_id="outpost"):
         self.width = WORLD_W
         self.height = WORLD_H
-        self.obstacles = create_obstacles()
+        self.map_id = map_id
+        self.obstacles = create_obstacles(map_id)
         self.terrain_surface = None
         self.decal_surface = None
 
@@ -101,6 +131,25 @@ class GameMap:
         import pygame
 
         surf = pygame.Surface((WORLD_W, WORLD_H))
+        if self.map_id == "ruins":
+            surf.fill((30, 36, 44))
+            for gx in range(0, WORLD_W + 1, 100):
+                pygame.draw.line(surf, (51, 65, 85), (gx, 0), (gx, WORLD_H), 1)
+            for gy in range(0, WORLD_H + 1, 100):
+                pygame.draw.line(surf, (51, 65, 85), (0, gy), (WORLD_W, gy), 1)
+            pygame.draw.rect(surf, (45, 55, 72), (0, WORLD_H // 2 - 160, WORLD_W, 320))
+            pygame.draw.rect(surf, (45, 55, 72), (WORLD_W // 2 - 160, 0, 320, WORLD_H))
+            cx, cy = WORLD_W // 2, WORLD_H // 2
+            pygame.draw.rect(surf, (37, 47, 62), (cx - 200, cy - 200, 400, 400))
+            caution_color = (202, 138, 4)
+            _draw_dashed_line(pygame, surf, caution_color, (0, cy), (cx - 210, cy), 4, 32, 24)
+            _draw_dashed_line(pygame, surf, caution_color, (cx + 210, cy), (WORLD_W, cy), 4, 32, 24)
+            _draw_dashed_line(pygame, surf, caution_color, (cx, 0), (cx, cy - 210), 4, 32, 24)
+            _draw_dashed_line(pygame, surf, caution_color, (cx, cy + 210), (cx, WORLD_H), 4, 32, 24)
+            pygame.draw.rect(surf, (220, 38, 38), (10, 10, WORLD_W - 20, WORLD_H - 20), 6)
+            decal_surf = pygame.Surface((WORLD_W, WORLD_H), pygame.SRCALPHA)
+            return surf, decal_surf
+
         surf.fill((236, 239, 243))
 
         # Subtle sector grid
@@ -412,8 +461,8 @@ class GameMap:
         return True
 
 
-def create_map(build_gfx=False):
-    m = GameMap()
+def create_map(map_id="outpost", build_gfx=False):
+    m = GameMap(map_id=map_id)
     if build_gfx:
         m.build_surfaces()
     return m

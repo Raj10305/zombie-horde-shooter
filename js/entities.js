@@ -5,112 +5,112 @@
     shambler: {
       name: "Shambler",
       radius: 15,
-      hp: 62,
-      speed: 78,
-      damage: 13,
-      attackRate: 1.0,
+      hp: 72,
+      speed: 95,
+      damage: 18,
+      attackRate: 0.85,
       cash: 14,
       score: 25,
       color: "#4d7c4f",
       headColor: "#6ca16f",
       eyeColor: "#fde047",
       bloodColor: "rgba(118, 22, 26, 0.55)",
-      knockResist: 1.0
+      knockResist: 0.95
     },
     runner: {
       name: "Crimson Runner",
       radius: 13,
-      hp: 40,
-      speed: 172,
-      damage: 11,
-      attackRate: 0.75,
+      hp: 52,
+      speed: 210,
+      damage: 16,
+      attackRate: 0.60,
       cash: 18,
       score: 35,
       color: "#991b1b",
       headColor: "#dc2626",
       eyeColor: "#fef08a",
       bloodColor: "rgba(145, 20, 28, 0.58)",
-      knockResist: 1.2
+      knockResist: 1.15
     },
     brute: {
       name: "Armored Brute",
       radius: 24,
-      hp: 265,
-      speed: 58,
-      damage: 26,
-      attackRate: 1.35,
+      hp: 360,
+      speed: 72,
+      damage: 36,
+      attackRate: 1.15,
       cash: 45,
       score: 90,
       color: "#475569",
       headColor: "#64748b",
       eyeColor: "#f97316",
       bloodColor: "rgba(95, 20, 24, 0.62)",
-      knockResist: 0.3
+      knockResist: 0.18
     },
     spitter: {
       name: "Bile Vomiter",
       radius: 14,
-      hp: 58,
-      speed: 88,
-      damage: 12,
-      attackRate: 2.3,
-      spitRange: 380,
+      hp: 70,
+      speed: 104,
+      damage: 18,
+      attackRate: 1.6,
+      spitRange: 420,
       cash: 26,
       score: 50,
       color: "#4d7c0f",
       headColor: "#84cc16",
       eyeColor: "#ecfccb",
       bloodColor: "rgba(101, 163, 13, 0.55)",
-      knockResist: 1.0
+      knockResist: 0.95
     },
     screamer: {
       name: "Sonic Screamer",
       radius: 14,
-      hp: 66,
-      speed: 96,
-      damage: 14,
-      attackRate: 2.6,
-      screamRange: 440,
+      hp: 80,
+      speed: 122,
+      damage: 24,
+      attackRate: 1.7,
+      screamRange: 460,
       cash: 28,
       score: 55,
       color: "#5b21b6",
       headColor: "#a78bfa",
       eyeColor: "#06b6d4",
       bloodColor: "rgba(91, 33, 182, 0.5)",
-      knockResist: 1.0
+      knockResist: 0.95
     },
     exploder: {
       name: "Volatile Boomer",
       radius: 18,
-      hp: 78,
-      speed: 102,
-      damage: 18,
-      attackRate: 1.0,
-      explodeRadius: 82,
-      explodeDamage: 42,
-      friendlyExplodeDamage: 45,
+      hp: 85,
+      speed: 122,
+      damage: 22,
+      attackRate: 0.9,
+      explodeRadius: 92,
+      explodeDamage: 55,
+      friendlyExplodeDamage: 50,
       cash: 32,
       score: 65,
       color: "#9a3412",
       headColor: "#fb923c",
       eyeColor: "#fef9c3",
       bloodColor: "rgba(180, 65, 16, 0.6)",
-      knockResist: 0.85
+      knockResist: 0.8
     },
     boss: {
       name: "NECRO TITAN",
       radius: 38,
-      hp: 2600,
-      speed: 68,
-      damage: 38,
-      attackRate: 1.25,
-      cash: 420,
-      score: 1200,
+      hp: 3800,
+      speed: 82,
+      damage: 48,
+      attackRate: 1.0,
+      cash: 500,
+      score: 1500,
       color: "#581c87",
       headColor: "#9333ea",
       eyeColor: "#ef4444",
       bloodColor: "rgba(126, 34, 206, 0.6)",
-      knockResist: 0.1
+      knockResist: 0.05
     }
   };
 
@@ -216,6 +216,8 @@
         dashDirX: 0,
         dashDirY: 0,
         invulnTimer: 0,
+        slowTimer: 0,
+        slowFactor: 1,
         overdriveTimer: 0,
         muzzleFlash: 0,
         activeWeaponId: "rifle",
@@ -320,8 +322,8 @@
   function spawnZombie(state, type, x, y, waveScale) {
     var proto = ZOMBIE_TYPES[type] || ZOMBIE_TYPES.shambler;
     var scale = waveScale || 1;
-    var hpMult = type === "boss" ? (1 + (scale - 1) * 0.65) : (1 + (scale - 1) * 0.22);
-    var spdMult = Math.min(1.45, 1 + (scale - 1) * 0.04);
+    var hpMult = type === "boss" ? (1 + (scale - 1) * 0.85) : (1 + (scale - 1) * 0.30);
+    var spdMult = Math.min(1.65, 1 + (scale - 1) * 0.065);
     var z = {
       id: state.nextId++,
       type: type,
@@ -334,21 +336,21 @@
       hp: Math.round(proto.hp * hpMult),
       maxHp: Math.round(proto.hp * hpMult),
       speed: proto.speed * spdMult * (0.94 + Math.random() * 0.12),
-      damage: Math.round(proto.damage * (1 + (scale - 1) * 0.12)),
+      damage: Math.round(proto.damage * (1 + (scale - 1) * 0.16)),
       attackRate: proto.attackRate,
-      attackCooldown: 0.3,
+      attackCooldown: 0.25,
       spitRange: proto.spitRange || 0,
-      spitCooldown: 1.0 + Math.random() * 1.0,
+      spitCooldown: 0.8 + Math.random() * 0.8,
       screamRange: proto.screamRange || 0,
-      screamCooldown: 1.1 + Math.random() * 1.1,
+      screamCooldown: 0.9 + Math.random() * 0.9,
       screamCharge: 0,
       lastCheckX: x,
       lastCheckY: y,
       stuckCheckTimer: 0.25,
       stuckEscapeTimer: 0,
       stuckBias: Math.random() < 0.5 ? -1 : 1,
-      slamCooldown: 4.5,
-      summonCooldown: 7.0,
+      slamCooldown: 3.8,
+      summonCooldown: 5.5,
       cash: proto.cash,
       score: proto.score,
       color: proto.color,
@@ -407,13 +409,13 @@
     if (p.invulnTimer > 0 || p.hp <= 0) return;
     var remaining = amount;
     if (p.armor > 0) {
-      var absorbed = Math.min(p.armor, remaining * 0.72);
+      var absorbed = Math.min(p.armor, remaining * 0.62);
       p.armor -= absorbed;
       remaining -= absorbed;
     }
     p.hp = Math.max(0, p.hp - remaining);
-    p.invulnTimer = 0.22;
-    addShake(state, 9);
+    p.invulnTimer = 0.14;
+    addShake(state, 10);
     if (audio) audio.playPlayerHurt();
     for (var i = 0; i < 6; i++) {
       var ang = Math.random() * Math.PI * 2;
@@ -1099,6 +1101,7 @@
 
     // Player timers & cooldowns
     if (p.invulnTimer > 0) p.invulnTimer = Math.max(0, p.invulnTimer - dt);
+    if (p.slowTimer > 0) p.slowTimer = Math.max(0, p.slowTimer - dt);
     if (p.overdriveTimer > 0) p.overdriveTimer = Math.max(0, p.overdriveTimer - dt);
     if (p.muzzleFlash > 0) p.muzzleFlash = Math.max(0, p.muzzleFlash - dt);
     if (p.dashCooldown > 0) p.dashCooldown = Math.max(0, p.dashCooldown - dt);
@@ -1115,7 +1118,8 @@
     var wd = getWeaponData();
     var activeDef = wd ? wd.WEAPON_BY_ID[p.activeWeaponId] : null;
     var moveSlow = (input && input.firing && activeDef && activeDef.baseStats.moveSlow) ? activeDef.baseStats.moveSlow : 1;
-    var speedMult = (p.overdriveTimer > 0 ? 1.25 : 1) * moveSlow;
+    var slowMult = p.slowTimer > 0 ? (p.slowFactor || 0.72) : 1;
+    var speedMult = (p.overdriveTimer > 0 ? 1.25 : 1) * moveSlow * slowMult;
 
     if (p.dashTimer > 0) {
       p.dashTimer -= dt;
@@ -1548,7 +1552,9 @@
           var dp = Math.hypot(pr.x - state.player.x, pr.y - state.player.y);
           if (dp <= pr.radius + state.player.radius) {
             damagePlayer(state, pr.damage, audio);
-            state.acidPools.push({ x: pr.x, y: pr.y, radius: 40, life: 4.5, maxLife: 4.5, tick: 0 });
+            state.player.slowTimer = 1.2;
+            state.player.slowFactor = 0.70;
+            state.acidPools.push({ x: pr.x, y: pr.y, radius: 42, life: 4.5, maxLife: 4.5, tick: 0 });
             pr.pooled = true;
             remove = true;
           }
@@ -1556,11 +1562,13 @@
           var ds = Math.hypot(pr.x - state.player.x, pr.y - state.player.y);
           if (ds <= pr.radius + state.player.radius) {
             damagePlayer(state, pr.damage, audio);
+            state.player.slowTimer = 1.4;
+            state.player.slowFactor = 0.65;
             var sLen = Math.hypot(pr.vx, pr.vy) || 1;
-            state.player.x += (pr.vx / sLen) * (pr.knockback || 24);
-            state.player.y += (pr.vy / sLen) * (pr.knockback || 24);
+            state.player.x += (pr.vx / sLen) * (pr.knockback || 28);
+            state.player.y += (pr.vy / sLen) * (pr.knockback || 28);
             m.resolveCircleObstacles(state.player);
-            addShake(state, 7);
+            addShake(state, 9);
             remove = true;
           }
         } else {
@@ -1613,9 +1621,11 @@
       pool.life -= dt;
       pool.tick -= dt;
       if (pool.tick <= 0) {
-        pool.tick = 0.45;
+        pool.tick = 0.35;
         if (Math.hypot(p.x - pool.x, p.y - pool.y) < pool.radius + p.radius * 0.5) {
-          damagePlayer(state, 7, audio);
+          damagePlayer(state, 10, audio);
+          p.slowTimer = 0.9;
+          p.slowFactor = 0.72;
         }
       }
       if (pool.life <= 0) {
@@ -1705,10 +1715,10 @@
       if (z.type === "spitter" && !targetTurret && hasClearPath && dist < z.spitRange && dist > 110) {
         z.spitCooldown -= dt;
         if (z.spitCooldown <= 0) {
-          z.spitCooldown = z.attackRate + Math.random() * 0.6;
+          z.spitCooldown = z.attackRate + Math.random() * 0.5;
           var baseAng = Math.atan2(dy, dx);
           var spreads = [-0.16, 0, 0.16];
-          var speeds = [330, 365, 345];
+          var speeds = [430, 470, 440];
           for (var vi = 0; vi < spreads.length; vi++) {
             var vang = baseAng + spreads[vi];
             state.projectiles.push({
@@ -1721,10 +1731,10 @@
               prevY: z.y,
               vx: Math.cos(vang) * speeds[vi],
               vy: Math.sin(vang) * speeds[vi],
-              radius: 6,
-              damage: Math.max(6, Math.round(z.damage * 0.7)),
+              radius: 7,
+              damage: Math.max(8, Math.round(z.damage * 0.75)),
               pierceLeft: 1,
-              rangeLeft: Math.min(dist + 35, 390),
+              rangeLeft: Math.min(dist + 50, 450),
               life: 1.45,
               maxLife: 1.45,
               hitIds: Object.create(null),
@@ -1750,25 +1760,25 @@
               y: z.y + Math.sin(sang) * 18,
               prevX: z.x,
               prevY: z.y,
-              vx: Math.cos(sang) * 420,
-              vy: Math.sin(sang) * 420,
-              radius: 18,
+              vx: Math.cos(sang) * 520,
+              vy: Math.sin(sang) * 520,
+              radius: 22,
               damage: z.damage,
-              knockback: 26,
+              knockback: 30,
               pierceLeft: 1,
-              rangeLeft: 460,
+              rangeLeft: 500,
               life: 1.4,
               maxLife: 1.4,
               hitIds: Object.create(null),
               color: "#6d28d9"
             });
-            z.screamCooldown = z.attackRate + Math.random() * 0.6;
+            z.screamCooldown = z.attackRate + Math.random() * 0.5;
             if (audio) audio.playSonicScream();
           }
         } else if (hasClearPath && dist < z.screamRange && dist > 110) {
           z.screamCooldown -= dt;
           if (z.screamCooldown <= 0) {
-            z.screamCharge = 0.36;
+            z.screamCharge = 0.30;
           }
         }
       }
@@ -1776,20 +1786,20 @@
       // Boss special abilities
       if (z.type === "boss") {
         z.slamCooldown -= dt;
-        if (z.slamCooldown <= 0 && dist < 190) {
-          z.slamCooldown = 5.5;
-          spawnShockwave(state, z.x, z.y, 175, "#c084fc", 0.36);
-          addShake(state, 12);
-          if (dist < 175) {
-            damagePlayer(state, 26, audio);
+        if (z.slamCooldown <= 0 && dist < 210) {
+          z.slamCooldown = 3.8;
+          spawnShockwave(state, z.x, z.y, 200, "#c084fc", 0.36);
+          addShake(state, 14);
+          if (dist < 200) {
+            damagePlayer(state, 35, audio);
           }
         }
         z.summonCooldown -= dt;
-        if (z.summonCooldown <= 0 && state.zombies.length < 180) {
-          z.summonCooldown = 8.5;
-          for (var sm = 0; sm < 4; sm++) {
-            var sa = (sm / 4) * Math.PI * 2 + Math.random() * 0.4;
-            spawnZombie(state, sm % 2 === 0 ? "runner" : "shambler", z.x + Math.cos(sa) * 55, z.y + Math.sin(sa) * 55, 1.1);
+        if (z.summonCooldown <= 0 && state.zombies.length < 220) {
+          z.summonCooldown = 5.2;
+          for (var sm = 0; sm < 6; sm++) {
+            var sa = (sm / 6) * Math.PI * 2 + Math.random() * 0.4;
+            spawnZombie(state, sm % 2 === 0 ? "runner" : "shambler", z.x + Math.cos(sa) * 55, z.y + Math.sin(sa) * 55, 1.25);
           }
         }
       }
@@ -1842,7 +1852,9 @@
         moveDirY = by / bLen;
       }
 
-      var spd = z.speed * z.slowFactor * moveFactor;
+      var bossEnrage = (z.type === "boss" && z.hp < z.maxHp * 0.5) ? 1.35 : 1.0;
+      var exploderRush = (z.type === "exploder" && dist < 165) ? 1.30 : 1.0;
+      var spd = z.speed * z.slowFactor * moveFactor * bossEnrage * exploderRush;
       z.x += (moveDirX * spd + sepX) * dt;
       z.y += (moveDirY * spd + sepY) * dt;
       m.resolveCircleObstacles(z);

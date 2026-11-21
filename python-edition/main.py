@@ -3,7 +3,7 @@
 import json
 import os
 import random
-import pygame
+import pygame  # pyright: ignore[reportMissingImports]
 
 import audio
 import entities
@@ -34,6 +34,7 @@ class GameApp:
         self.phase = "menu"  # menu | controls | playing | armory | paused | gameover
         self.controls_return_phase = "menu"
         self.mode = "survival"
+        self.current_map_id = "outpost"
         self.armory_filter = "all"
         self.armory_scroll = 0
         self.controls_scroll = 0
@@ -77,9 +78,11 @@ class GameApp:
         self.wave["banner_sub"] = sub
         self.wave["banner_timer"] = duration
 
-    def start_run(self, mode):
+    def start_run(self, mode, map_id=None):
+        if map_id:
+            self.current_map_id = map_id
         self.mode = mode
-        self.map = game_map.create_map(build_gfx=True)
+        self.map = game_map.create_map(map_id=self.current_map_id, build_gfx=True)
         self.state = entities.create_world_state(mode, self.map)
         self.camera = [self.state.player.x, self.state.player.y]
         self.firing = False
@@ -94,25 +97,25 @@ class GameApp:
     def build_wave_queue(self, wave_num, mode):
         queue = []
         total = (
-            26 + min(70, wave_num * 8)
+            36 + min(110, wave_num * 12)
             if mode == "sandbox"
-            else 16 + int(wave_num * 7.5 + (wave_num ** 1.32))
+            else 24 + int(wave_num * 10 + (wave_num ** 1.45))
         )
-        max_exploders = min(3, max(1, (wave_num - 2) // 2)) if wave_num >= 4 else 0
+        max_exploders = min(4, max(1, (wave_num - 1) // 2)) if wave_num >= 3 else 0
         exploder_count = 0
 
         for _ in range(total):
             r = random.random()
-            if wave_num >= 4 and exploder_count < max_exploders and r < 0.03:
+            if wave_num >= 3 and exploder_count < max_exploders and r < 0.05:
                 queue.append("exploder")
                 exploder_count += 1
-            elif wave_num >= 3 and r < 0.22:
+            elif wave_num >= 2 and r < 0.24:
                 queue.append("brute")
-            elif r < 0.34:
+            elif r < 0.38:
                 queue.append("spitter")
-            elif r < 0.44:
+            elif r < 0.50:
                 queue.append("screamer")
-            elif r < 0.68:
+            elif r < 0.76:
                 queue.append("runner")
             else:
                 queue.append("shambler")
@@ -437,12 +440,12 @@ class GameApp:
         if self.wave["queue"]:
             self.wave["spawn_timer"] -= dt
             if self.wave["spawn_timer"] <= 0:
-                batch = min(len(self.wave["queue"]), 1 + self.wave["number"] // 4)
+                batch = min(len(self.wave["queue"]), 2 + self.wave["number"] // 2)
                 bounds = self._view_bounds()
-                scale = 1.0 + (self.wave["number"] - 1) * 0.14
+                scale = 1.0 + (self.wave["number"] - 1) * 0.22
                 for _ in range(batch):
                     entities.spawn_zombie_at_edge(self.state, self.wave["queue"].pop(0), scale, bounds)
-                self.wave["spawn_timer"] = max(0.16, 0.62 - self.wave["number"] * 0.03)
+                self.wave["spawn_timer"] = max(0.10, 0.45 - self.wave["number"] * 0.035)
         elif not self.state.zombies:
             if self.wave["intermission"] <= 0:
                 self.wave["intermission"] = 2.6
