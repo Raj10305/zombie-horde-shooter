@@ -1,6 +1,7 @@
 """Pygame world renderer, minimap, and light-themed rectangular UI screens."""
 
 import math
+import os
 import pygame
 
 import weapons
@@ -121,12 +122,24 @@ class GameRenderer:
             self._draw_aim_preview(screen, state, inp["mouse_world_x"], inp["mouse_world_y"], cam_left, cam_top)
 
         # 4. Obstacles
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        if not hasattr(self, "_obs_sprite_cache"):
+            self._obs_sprite_cache = {}
         for ob in state.map.obstacles:
             ox = ob["x"] - cam_left
             oy = ob["y"] - cam_top
             ow, oh = ob["w"], ob["h"]
             if ox + ow < -30 or ox > view_w + 30 or oy + oh < -30 or oy > view_h + 30:
                 continue
+            sp_rel = ob.get("sprite")
+            if sp_rel:
+                if sp_rel not in self._obs_sprite_cache:
+                    sp_full = os.path.join(base_dir, *sp_rel.split("/"))
+                    self._obs_sprite_cache[sp_rel] = pygame.image.load(sp_full).convert_alpha() if os.path.isfile(sp_full) else None
+                sp_surf = self._obs_sprite_cache.get(sp_rel)
+                if sp_surf is not None:
+                    screen.blit(sp_surf, (round(ox), round(oy)))
+                    continue
             pygame.draw.rect(screen, (175, 182, 192), (round(ox + 5), round(oy + 7), ow, oh))
             pygame.draw.rect(screen, ob["color"], (round(ox), round(oy), ow, oh))
             pygame.draw.rect(screen, (30, 41, 59), (round(ox), round(oy), ow, oh), 2)

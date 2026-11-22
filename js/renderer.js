@@ -44,20 +44,23 @@
       drawGroundAimPreview(ctx, state, input.mouseWorldX, input.mouseWorldY);
     }
 
-    // 4. Obstacles
+    // 4. Obstacles & Sandbox Fort Structures
     drawObstacles(ctx, state.map.obstacles, camLeft, camTop, worldViewW, worldViewH);
+    if (state.fortStructures && state.fortStructures.length > 0) {
+      drawFortStructures(ctx, state.fortStructures, camLeft, camTop, worldViewW, worldViewH);
+    }
 
     // 5. Pickups
     drawPickups(ctx, state.pickups);
 
-    // 6. Auto-Turrets
+    // 6. Auto-Turrets & Fort Defenses
     drawTurrets(ctx, state.turrets);
 
     // 7. Zombies
     drawZombies(ctx, state.zombies, camLeft, camTop, worldViewW, worldViewH);
 
     // 8. Player
-    drawPlayer(ctx, state.player);
+    drawPlayer(ctx, state.player, state.time);
 
     // 9. Projectiles, Beams, Shockwaves, Particles
     drawProjectiles(ctx, state.projectiles);
@@ -73,8 +76,10 @@
     // 11. Floating Combat Texts
     drawFloatingTexts(ctx, state.floatingTexts);
 
-    // 12. Custom Reticle
-    if (input && typeof input.mouseWorldX === "number") {
+    // 12. Fort Build Preview or Custom Reticle
+    if (input && input.buildMode && input.buildMode.active && typeof input.mouseWorldX === "number") {
+      drawBuildPreview(ctx, input.buildMode, input.mouseWorldX, input.mouseWorldY);
+    } else if (input && typeof input.mouseWorldX === "number") {
       drawCrosshair(ctx, state, input.mouseWorldX, input.mouseWorldY);
     }
 
@@ -172,6 +177,21 @@
     }
   }
 
+  var obstacleSpriteCache = Object.create(null);
+
+  function getObstacleSprite(src) {
+    if (!src || typeof Image === "undefined") return null;
+    var entry = obstacleSpriteCache[src];
+    if (!entry) {
+      var img = new Image();
+      entry = { img: img, ready: false };
+      img.onload = function () { entry.ready = true; };
+      img.src = src;
+      obstacleSpriteCache[src] = entry;
+    }
+    return entry.ready ? entry.img : null;
+  }
+
   function drawObstacles(ctx, obstacles, camLeft, camTop, viewW, viewH) {
     for (var i = 0; i < obstacles.length; i++) {
       var ob = obstacles[i];
@@ -179,6 +199,20 @@
           ob.y + ob.h < camTop - 30 || ob.y > camTop + viewH + 30) {
         continue;
       }
+
+      if (ob.sprite) {
+        var sp = getObstacleSprite(ob.sprite);
+        if (sp) {
+          ctx.save();
+          ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+          ctx.fillRect(ob.x + 6, ob.y + 8, ob.w - 4, ob.h - 4);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(sp, ob.x, ob.y, ob.w, ob.h);
+          ctx.restore();
+          continue;
+        }
+      }
+
       // Drop shadow
       ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
       ctx.fillRect(ob.x + 5, ob.y + 7, ob.w, ob.h);
@@ -252,22 +286,124 @@
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, 11, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      var pspr = typeof window !== "undefined" && window.SpriteLoader
+        ? window.SpriteLoader.getPickupSprite(pk.type)
+        : null;
+      if (pspr && pspr.ready && pspr.img) {
+        ctx.imageSmoothingEnabled = false;
+        var pw = pspr.img.naturalWidth || 24;
+        var ph = pspr.img.naturalHeight || 20;
+        ctx.drawImage(pspr.img, -pw / 2, -ph / 2, pw, ph);
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
 
-      ctx.fillStyle = color;
-      ctx.font = "bold 12px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      var label = pk.type === "medkit" ? "+" : pk.type === "cash" ? "$" : pk.type === "overdrive" ? "⚡" : "☢";
-      ctx.fillText(label, 0, 0.5);
+        ctx.fillStyle = color;
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        var label = pk.type === "medkit" ? "+" : pk.type === "cash" ? "$" : pk.type === "overdrive" ? "⚡" : "☢";
+        ctx.fillText(label, 0, 0.5);
+      }
       ctx.restore();
     }
+  }
+
+  function drawFortStructures(ctx, structures, camLeft, camTop, viewW, viewH) {
+    var loader = typeof window !== "undefined" ? window.SpriteLoader : null;
+    for (var i = 0; i < structures.length; i++) {
+      var st = structures[i];
+      if (st.hp <= 0) continue;
+      if (st.x + st.w < camLeft - 30 || st.x > camLeft + viewW + 30 ||
+          st.y + st.h < camTop - 30 || st.y > camTop + viewH + 30) {
+        continue;
+      }
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+      ctx.fillRect(st.x + 4, st.y + 6, st.w, st.h);
+
+      var fspr = loader ? loader.getFortSprite(st.spriteKey) : null;
+      if (fspr && fspr.ready && fspr.img) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(fspr.img, st.x, st.y, st.w, st.h);
+      } else {
+        ctx.fillStyle = st.color || "#78350f";
+        ctx.fillRect(st.x, st.y, st.w, st.h);
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(st.x, st.y, st.w, st.h);
+      }
+
+      if (st.hitFlash > 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.fillRect(st.x, st.y, st.w, st.h);
+      }
+
+      if (st.hp < st.maxHp) {
+        var frac = Math.max(0, st.hp / st.maxHp);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.fillRect(st.x, st.y - 8, st.w, 4);
+        ctx.fillStyle = frac > 0.45 ? "#22c55e" : "#ef4444";
+        ctx.fillRect(st.x, st.y - 8, st.w * frac, 4);
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawBuildPreview(ctx, buildMode, mx, my) {
+    var sx = Math.round(mx / 24) * 24;
+    var sy = Math.round(my / 24) * 24;
+    var itemId = buildMode.itemId;
+    ctx.save();
+    if (itemId === "demolish") {
+      ctx.strokeStyle = "#dc2626";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(mx, my, 24, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mx - 10, my - 10);
+      ctx.lineTo(mx + 10, my + 10);
+      ctx.moveTo(mx + 10, my - 10);
+      ctx.lineTo(mx - 10, my + 10);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    var defs = typeof window !== "undefined" && window.GameEntities ? window.GameEntities.FORT_DEFS : null;
+    var def = defs ? defs[itemId] : null;
+    if (!def) {
+      ctx.restore();
+      return;
+    }
+    if (def.kind === "structure") {
+      var w = buildMode.vertical ? def.wV : def.wH;
+      var h = buildMode.vertical ? def.hV : def.hH;
+      ctx.fillStyle = "rgba(15, 118, 110, 0.28)";
+      ctx.strokeStyle = "#0f766e";
+      ctx.lineWidth = 2;
+      ctx.fillRect(sx - w / 2, sy - h / 2, w, h);
+      ctx.strokeRect(sx - w / 2, sy - h / 2, w, h);
+    } else if (def.kind === "defense_turret") {
+      ctx.strokeStyle = def.color || "#0f766e";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.arc(sx, sy, def.range || 300, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(15, 118, 110, 0.35)";
+      ctx.beginPath();
+      ctx.arc(sx, sy, def.radius || 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawTurrets(ctx, turrets) {
@@ -276,37 +412,57 @@
       ctx.save();
       ctx.translate(t.x, t.y);
 
-      // Base tripod
+      var dtType = t.defenseType || "turret";
+      var headColor = t.color || "#7c3aed";
+
+      // Base tripod / bunker pad
       ctx.fillStyle = "#1e293b";
-      ctx.strokeStyle = "#64748b";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = t.permanent ? headColor : "#64748b";
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.arc(0, 0, t.radius || 14, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Rotating head
+      // Rotating weapon turret head
       ctx.save();
       ctx.rotate(t.angle);
-      ctx.fillStyle = "#7c3aed";
-      ctx.fillRect(-7, -7, 15, 14);
-      ctx.fillStyle = "#cbd5e1";
-      ctx.fillRect(8, -4.5, 13, 3);
-      ctx.fillRect(8, 1.5, 13, 3);
-      if (t.muzzleFlash > 0) {
-        ctx.fillStyle = "#fde047";
+      ctx.fillStyle = headColor;
+      ctx.fillRect(-8, -8, 16, 16);
+      ctx.fillStyle = "#e2e8f0";
+      if (dtType === "shotgun_turret") {
+        ctx.fillRect(7, -5, 14, 10);
+      } else if (dtType === "flame_turret") {
+        ctx.fillStyle = "#f97316";
+        ctx.fillRect(8, -4, 15, 8);
+      } else if (dtType === "tesla_turret") {
+        ctx.fillStyle = "#38bdf8";
         ctx.beginPath();
-        ctx.arc(23, 0, 5, 0, Math.PI * 2);
+        ctx.arc(0, 0, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(6, -2, 12, 4);
+      } else if (dtType === "rpg_turret") {
+        ctx.fillStyle = "#10b981";
+        ctx.fillRect(4, -7, 16, 5);
+        ctx.fillRect(4, 2, 16, 5);
+      } else {
+        ctx.fillRect(8, -4.5, 13, 3);
+        ctx.fillRect(8, 1.5, 13, 3);
+      }
+      if (t.muzzleFlash > 0) {
+        ctx.fillStyle = dtType === "tesla_turret" ? "#38bdf8" : "#fde047";
+        ctx.beginPath();
+        ctx.arc(23, 0, 5.5, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
 
-      // Duration bar
-      var frac = Math.max(0, t.life / t.maxLife);
+      // HP or duration bar
+      var frac = t.permanent ? Math.max(0, t.hp / (t.maxHp || 350)) : Math.max(0, t.life / t.maxLife);
       ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(-14, -22, 28, 4);
-      ctx.fillStyle = "#a78bfa";
-      ctx.fillRect(-14, -22, 28 * frac, 4);
+      ctx.fillRect(-15, -24, 30, 4);
+      ctx.fillStyle = t.permanent ? (frac > 0.45 ? "#22c55e" : "#ef4444") : "#a78bfa";
+      ctx.fillRect(-15, -24, 30 * frac, 4);
       ctx.restore();
     }
   }
@@ -453,7 +609,7 @@
     designator:   { w: 24, h: 14, ox: 13, oy: 1, muzzleX: 25 }
   };
 
-  function drawPlayer(ctx, p) {
+  function drawPlayer(ctx, p, time) {
     // Dash afterimages
     for (var ai = 0; ai < p.afterimages.length; ai++) {
       var im = p.afterimages[ai];
@@ -478,21 +634,49 @@
     }
 
     // Ground shadow
-    ctx.fillStyle = "rgba(0,0,0,0.42)";
+    ctx.fillStyle = "rgba(0,0,0,0.38)";
     ctx.beginPath();
-    ctx.ellipse(2, 5, 16, 13, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 14, 15, 9, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Animated 6-frame pixel-art survivor sprite (with tactical helmet)
+    var absA = p.angle;
+    var deg = ((absA * 180 / Math.PI) + 360) % 360;
+    var dir = (deg >= 45 && deg < 135) ? "down"
+      : (deg >= 135 && deg < 225) ? "left"
+      : (deg >= 225 && deg < 315) ? "up"
+      : "right";
+    var moving = Math.hypot(p.vx || 0, p.vy || 0) > 18;
+    var pspr = typeof window !== "undefined" && window.SpriteLoader
+      ? window.SpriteLoader.getPlayerSprite(dir, moving)
+      : null;
+
+    var hurtBlink = p.invulnTimer > 0 && Math.floor(p.invulnTimer * 30) % 2 === 0;
+    if (pspr && pspr.ready && pspr.img) {
+      var img = pspr.img;
+      var frames = 6;
+      var fw = img.naturalWidth / frames;
+      var fh = img.naturalHeight;
+      var frameIdx = Math.floor((time || 0) * (moving ? 11 : 6)) % frames;
+      ctx.save();
+      if (hurtBlink) ctx.globalAlpha = 0.55;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, frameIdx * fw, 0, fw, fh, -fw / 2, -fh / 2 - 4, fw, fh);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.rotate(p.angle);
+      ctx.fillStyle = hurtBlink ? "#fca5a5" : "#2563eb";
+      ctx.beginPath();
+      ctx.ellipse(-2, 0, 12, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#93c5fd";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.rotate(p.angle);
-
-    // Tactical soldier body
-    ctx.fillStyle = p.invulnTimer > 0 && Math.floor(p.invulnTimer * 30) % 2 === 0 ? "#fca5a5" : "#2563eb";
-    ctx.beginPath();
-    ctx.ellipse(-2, 0, 12, 15, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#93c5fd";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
 
     // Weapon sprite / fallback vector barrel
     var wid = p.activeWeaponId;

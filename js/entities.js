@@ -232,6 +232,7 @@
       aircraft: [],
       bombs: [],
       turrets: [],
+      fortStructures: [],
       orbitals: [],
       acidPools: [],
       pickups: [],
@@ -1142,6 +1143,9 @@
       p.y += p.vy * dt;
     }
     m.resolveCircleObstacles(p);
+    if (state.fortStructures.length > 0) {
+      resolveCircleFortStructures(p, state.fortStructures, true);
+    }
 
     if (input && typeof input.mouseWorldX === "number" && typeof input.mouseWorldY === "number") {
       var adx = input.mouseWorldX - p.x;
@@ -1393,10 +1397,342 @@
     }
   }
 
+  var FORT_DEFS = {
+    wood_wall: {
+      id: "wood_wall",
+      name: "Wooden Wall",
+      kind: "structure",
+      wH: 96, hH: 42, wV: 24, hV: 96,
+      hp: 360,
+      blocksPlayer: true,
+      blocksZombies: true,
+      spriteH: "wood_wall_h",
+      spriteV: "wood_wall_v",
+      color: "#8b5a2b"
+    },
+    reinforced_wall: {
+      id: "reinforced_wall",
+      name: "Reinforced Wall",
+      kind: "structure",
+      wH: 96, hH: 42, wV: 24, hV: 96,
+      hp: 950,
+      blocksPlayer: true,
+      blocksZombies: true,
+      spriteH: "reinforced_wall_h",
+      spriteV: "reinforced_wall_v",
+      color: "#57534e"
+    },
+    fort_gate: {
+      id: "fort_gate",
+      name: "Fort Gate",
+      kind: "structure",
+      wH: 64, hH: 46, wV: 28, hV: 72,
+      hp: 560,
+      blocksPlayer: false,
+      blocksZombies: true,
+      spriteH: "fort_gate_h",
+      spriteV: "fort_gate_v",
+      color: "#78350f"
+    },
+    wire_fence: {
+      id: "wire_fence",
+      name: "Barbed Wire",
+      kind: "structure",
+      wH: 96, hH: 48, wV: 48, hV: 96,
+      hp: 320,
+      blocksPlayer: false,
+      blocksZombies: false,
+      slowFactor: 0.42,
+      dps: 24,
+      spriteH: "wire_fence_h",
+      spriteV: "wire_fence_v",
+      color: "#64748b"
+    },
+    mg_turret: {
+      id: "mg_turret",
+      name: "MG Turret",
+      kind: "defense_turret",
+      radius: 17,
+      hp: 360,
+      range: 360,
+      fireRate: 7.5,
+      damage: 26,
+      color: "#d97706"
+    },
+    shotgun_turret: {
+      id: "shotgun_turret",
+      name: "Shotgun Bunker",
+      kind: "defense_turret",
+      radius: 18,
+      hp: 440,
+      range: 260,
+      fireRate: 1.65,
+      damage: 24,
+      pellets: 5,
+      color: "#ea580c"
+    },
+    flame_turret: {
+      id: "flame_turret",
+      name: "Flame Tower",
+      kind: "defense_turret",
+      radius: 18,
+      hp: 400,
+      range: 230,
+      fireRate: 11.0,
+      damage: 14,
+      color: "#dc2626"
+    },
+    tesla_turret: {
+      id: "tesla_turret",
+      name: "Tesla Coil",
+      kind: "defense_turret",
+      radius: 18,
+      hp: 380,
+      range: 320,
+      fireRate: 2.2,
+      damage: 44,
+      chains: 4,
+      color: "#0284c7"
+    },
+    rpg_turret: {
+      id: "rpg_turret",
+      name: "Rocket Battery",
+      kind: "defense_turret",
+      radius: 19,
+      hp: 420,
+      range: 460,
+      fireRate: 0.72,
+      damage: 145,
+      blastRadius: 112,
+      color: "#047857"
+    }
+  };
+
+  function snapFortCoord(val) {
+    return Math.round(val / 24) * 24;
+  }
+
+  function placeFortItem(state, itemId, worldX, worldY, vertical, audio) {
+    if (!state) return false;
+    var sx = Math.max(48, Math.min(state.map.width - 48, snapFortCoord(worldX)));
+    var sy = Math.max(48, Math.min(state.map.height - 48, snapFortCoord(worldY)));
+
+    if (itemId === "demolish") {
+      var removed = false;
+      for (var i = state.fortStructures.length - 1; i >= 0; i--) {
+        var st = state.fortStructures[i];
+        if (worldX >= st.x - 16 && worldX <= st.x + st.w + 16 && worldY >= st.y - 16 && worldY <= st.y + st.h + 16) {
+          spawnShockwave(state, st.x + st.w / 2, st.y + st.h / 2, 34, "#94a3b8", 0.2);
+          state.fortStructures.splice(i, 1);
+          removed = true;
+          break;
+        }
+      }
+      if (!removed) {
+        for (var j = state.turrets.length - 1; j >= 0; j--) {
+          var tur = state.turrets[j];
+          if (Math.hypot(tur.x - worldX, tur.y - worldY) < 42) {
+            spawnShockwave(state, tur.x, tur.y, 34, "#94a3b8", 0.2);
+            state.turrets.splice(j, 1);
+            removed = true;
+            break;
+          }
+        }
+      }
+      if (removed && audio) audio.playSwitch();
+      return removed;
+    }
+
+    var def = FORT_DEFS[itemId];
+    if (!def) return false;
+
+    if (def.kind === "structure") {
+      if (state.fortStructures.length >= 160) return false;
+      var w = vertical ? def.wV : def.wH;
+      var h = vertical ? def.hV : def.hH;
+      var rx = Math.round(sx - w / 2);
+      var ry = Math.round(sy - h / 2);
+      for (var k = 0; k < state.fortStructures.length; k++) {
+        var ex = state.fortStructures[k];
+        if (Math.abs((ex.x + ex.w / 2) - sx) < 18 && Math.abs((ex.y + ex.h / 2) - sy) < 18) {
+          return false;
+        }
+      }
+      state.fortStructures.push({
+        id: state.nextId++,
+        type: def.id,
+        name: def.name,
+        x: rx,
+        y: ry,
+        w: w,
+        h: h,
+        vertical: !!vertical,
+        hp: def.hp,
+        maxHp: def.hp,
+        blocksPlayer: def.blocksPlayer,
+        blocksZombies: def.blocksZombies,
+        slowFactor: def.slowFactor || 1,
+        dps: def.dps || 0,
+        spriteKey: vertical ? def.spriteV : def.spriteH,
+        color: def.color,
+        hitFlash: 0
+      });
+      spawnFloatingText(state, sx, sy - 20, def.name.toUpperCase(), "#0f766e", 11);
+      if (audio) audio.playTurretDeploy();
+      return true;
+    }
+
+    if (def.kind === "defense_turret") {
+      if (state.turrets.length >= 40) return false;
+      for (var ti = 0; ti < state.turrets.length; ti++) {
+        if (Math.hypot(state.turrets[ti].x - sx, state.turrets[ti].y - sy) < 34) {
+          return false;
+        }
+      }
+      state.turrets.push({
+        id: state.nextId++,
+        defenseType: def.id,
+        name: def.name,
+        x: sx,
+        y: sy,
+        radius: def.radius,
+        angle: 0,
+        hp: def.hp,
+        maxHp: def.hp,
+        life: 99999,
+        maxLife: 99999,
+        permanent: true,
+        range: def.range,
+        fireRate: def.fireRate,
+        fireCooldown: 0.1,
+        damage: def.damage,
+        pellets: def.pellets || 1,
+        chains: def.chains || 0,
+        blastRadius: def.blastRadius || 0,
+        color: def.color,
+        muzzleFlash: 0
+      });
+      spawnShockwave(state, sx, sy, 36, def.color, 0.25);
+      spawnFloatingText(state, sx, sy - 22, def.name.toUpperCase(), def.color, 11);
+      if (audio) audio.playTurretDeploy();
+      return true;
+    }
+    return false;
+  }
+
+  function repairAllFort(state, audio) {
+    if (!state) return;
+    var count = 0;
+    for (var i = 0; i < state.fortStructures.length; i++) {
+      var st = state.fortStructures[i];
+      if (st.hp < st.maxHp) {
+        st.hp = st.maxHp;
+        count++;
+      }
+    }
+    for (var j = 0; j < state.turrets.length; j++) {
+      var t = state.turrets[j];
+      if (t.hp < t.maxHp) {
+        t.hp = t.maxHp;
+        count++;
+      }
+    }
+    if (count > 0) {
+      spawnFloatingText(state, state.player.x, state.player.y - 30, "FORT REPAIRED (" + count + ")", "#16a34a", 13);
+      if (audio) audio.playUpgrade();
+    }
+  }
+
+  function segmentHitsRect(x1, y1, x2, y2, rx, ry, rw, rh, pad) {
+    var p = pad || 0;
+    var minX = rx - p;
+    var maxX = rx + rw + p;
+    var minY = ry - p;
+    var maxY = ry + rh + p;
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    var t0 = 0;
+    var t1 = 1;
+    var pp = [-dx, dx, -dy, dy];
+    var qq = [x1 - minX, maxX - x1, y1 - minY, maxY - y1];
+    for (var k = 0; k < 4; k++) {
+      if (pp[k] === 0) {
+        if (qq[k] < 0) return null;
+      } else {
+        var t = qq[k] / pp[k];
+        if (pp[k] < 0) {
+          if (t > t1) return null;
+          if (t > t0) t0 = t;
+        } else {
+          if (t < t0) return null;
+          if (t < t1) t1 = t;
+        }
+      }
+    }
+    if (t0 <= t1 && t0 >= 0 && t0 <= 1) {
+      return { t: t0, x: x1 + dx * t0, y: y1 + dy * t0 };
+    }
+    return null;
+  }
+
+  function segmentHitsFortStructure(structures, x1, y1, x2, y2, pad) {
+    if (!structures || structures.length === 0) return null;
+    var bestT = 2;
+    var best = null;
+    for (var i = 0; i < structures.length; i++) {
+      var st = structures[i];
+      if (st.hp <= 0 || !st.blocksZombies) continue;
+      var hit = segmentHitsRect(x1, y1, x2, y2, st.x, st.y, st.w, st.h, pad);
+      if (hit && hit.t < bestT) {
+        bestT = hit.t;
+        best = { t: hit.t, x: hit.x, y: hit.y, structure: st };
+      }
+    }
+    return best;
+  }
+
+  function resolveCircleFortStructures(entity, structures, isPlayer) {
+    var hitStructure = null;
+    var r = entity.radius || 14;
+    for (var i = 0; i < structures.length; i++) {
+      var ob = structures[i];
+      if (ob.hp <= 0) continue;
+      if (isPlayer && !ob.blocksPlayer) continue;
+      if (!isPlayer && !ob.blocksZombies) continue;
+      var closestX = entity.x < ob.x ? ob.x : entity.x > ob.x + ob.w ? ob.x + ob.w : entity.x;
+      var closestY = entity.y < ob.y ? ob.y : entity.y > ob.y + ob.h ? ob.y + ob.h : entity.y;
+      var dx = entity.x - closestX;
+      var dy = entity.y - closestY;
+      var distSq = dx * dx + dy * dy;
+      if (distSq < r * r) {
+        hitStructure = ob;
+        if (distSq > 0.0001) {
+          var dist = Math.sqrt(distSq);
+          var push = r - dist;
+          entity.x += (dx / dist) * push;
+          entity.y += (dy / dist) * push;
+        } else {
+          var leftPen = entity.x - ob.x;
+          var rightPen = ob.x + ob.w - entity.x;
+          var topPen = entity.y - ob.y;
+          var botPen = ob.y + ob.h - entity.y;
+          var minPen = Math.min(leftPen, rightPen, topPen, botPen);
+          if (minPen === leftPen) entity.x = ob.x - r;
+          else if (minPen === rightPen) entity.x = ob.x + ob.w + r;
+          else if (minPen === topPen) entity.y = ob.y - r;
+          else entity.y = ob.y + ob.h + r;
+        }
+      }
+    }
+    return hitStructure;
+  }
+
   function updateTurrets(state, dt, audio) {
     for (var i = state.turrets.length - 1; i >= 0; i--) {
       var t = state.turrets[i];
-      t.life -= dt;
+      if (!t.permanent) {
+        t.life -= dt;
+      }
       if (t.muzzleFlash > 0) t.muzzleFlash = Math.max(0, t.muzzleFlash - dt);
       t.fireCooldown -= dt;
 
@@ -1406,34 +1742,108 @@
         t.angle = lerpAngle(t.angle, ang, dt * 12);
         if (t.fireCooldown <= 0) {
           t.fireCooldown = 1 / t.fireRate;
-          t.muzzleFlash = 0.05;
+          t.muzzleFlash = 0.06;
           var mx = t.x + Math.cos(t.angle) * 20;
           var my = t.y + Math.sin(t.angle) * 20;
-          state.projectiles.push({
-            id: state.nextId++,
-            kind: "bullet",
-            weaponId: "turret",
-            x: mx,
-            y: my,
-            prevX: mx,
-            prevY: my,
-            vx: Math.cos(t.angle) * 980,
-            vy: Math.sin(t.angle) * 980,
-            radius: 3.5,
-            damage: t.damage,
-            pierceLeft: 1,
-            blastRadius: 0,
-            rangeLeft: t.range + 60,
-            life: 1.2,
-            maxLife: 1.2,
-            hitIds: Object.create(null),
-            knockback: 4,
-            color: "#c4b5fd"
-          });
-          if (audio) audio.playTurretShot();
+          var dtType = t.defenseType || "mg_turret";
+
+          if (dtType === "shotgun_turret") {
+            var pellets = t.pellets || 5;
+            for (var pi = 0; pi < pellets; pi++) {
+              var spread = (pi - (pellets - 1) / 2) * 0.11 + (Math.random() - 0.5) * 0.04;
+              var sa = t.angle + spread;
+              state.projectiles.push({
+                id: state.nextId++,
+                kind: "bullet",
+                weaponId: "shotgun",
+                x: mx, y: my, prevX: mx, prevY: my,
+                vx: Math.cos(sa) * 900, vy: Math.sin(sa) * 900,
+                radius: 3.5, damage: t.damage, pierceLeft: 1, blastRadius: 0,
+                rangeLeft: t.range + 40, life: 0.7, maxLife: 0.7,
+                hitIds: Object.create(null), knockback: 14, color: "#fb923c"
+              });
+            }
+            if (audio) audio.playShotgun();
+          } else if (dtType === "flame_turret") {
+            var fa = t.angle + (Math.random() - 0.5) * 0.24;
+            state.projectiles.push({
+              id: state.nextId++,
+              kind: "flame",
+              weaponId: "flamethrower",
+              x: mx, y: my, prevX: mx, prevY: my,
+              vx: Math.cos(fa) * 440, vy: Math.sin(fa) * 440,
+              radius: 9, damage: t.damage, burnDamage: 16, burnDuration: 2.5,
+              pierceLeft: 3, blastRadius: 0, rangeLeft: t.range + 20,
+              life: 0.52, maxLife: 0.52, hitIds: Object.create(null),
+              knockback: 2, color: "#f97316"
+            });
+            if (audio && Math.random() < 0.35) audio.playFlame();
+          } else if (dtType === "tesla_turret") {
+            var hitSet = Object.create(null);
+            var curX = mx;
+            var curY = my;
+            var curTarget = target;
+            var pts = [{ x: curX, y: curY }];
+            var chains = t.chains || 4;
+            for (var ci = 0; ci < chains && curTarget; ci++) {
+              hitSet[curTarget.id] = true;
+              pts.push({ x: curTarget.x, y: curTarget.y });
+              damageZombie(state, curTarget, Math.round(t.damage * Math.pow(0.86, ci)), 0, 0, "tesla", audio);
+              curX = curTarget.x;
+              curY = curTarget.y;
+              var nearT = state.hash.query(curX, curY, 155);
+              var nextBest = null;
+              var nextSq = 155 * 155;
+              for (var ni = 0; ni < nearT.length; ni++) {
+                var cand = nearT[ni];
+                if (cand.dead || hitSet[cand.id]) continue;
+                var d2 = (cand.x - curX) * (cand.x - curX) + (cand.y - curY) * (cand.y - curY);
+                if (d2 < nextSq) { nextSq = d2; nextBest = cand; }
+              }
+              curTarget = nextBest;
+            }
+            state.beams.push({ kind: "lightning", points: pts, color: "#38bdf8", width: 2.6, life: 0.14, maxLife: 0.14 });
+            if (audio) audio.playTesla();
+          } else if (dtType === "rpg_turret") {
+            state.projectiles.push({
+              id: state.nextId++,
+              kind: "rocket",
+              weaponId: "rpg",
+              x: mx, y: my, prevX: mx, prevY: my,
+              vx: Math.cos(t.angle) * 620, vy: Math.sin(t.angle) * 620,
+              radius: 5.5, damage: t.damage, pierceLeft: 1,
+              blastRadius: t.blastRadius || 110, rangeLeft: t.range + 90,
+              life: 1.4, maxLife: 1.4, hitIds: Object.create(null),
+              knockback: 0, color: "#10b981"
+            });
+            if (audio) audio.playRocketLaunch();
+          } else {
+            state.projectiles.push({
+              id: state.nextId++,
+              kind: "bullet",
+              weaponId: "turret",
+              x: mx,
+              y: my,
+              prevX: mx,
+              prevY: my,
+              vx: Math.cos(t.angle) * 980,
+              vy: Math.sin(t.angle) * 980,
+              radius: 3.5,
+              damage: t.damage,
+              pierceLeft: 1,
+              blastRadius: 0,
+              rangeLeft: t.range + 60,
+              life: 1.2,
+              maxLife: 1.2,
+              hitIds: Object.create(null),
+              knockback: 4,
+              color: t.defenseType ? "#fbbf24" : "#c4b5fd"
+            });
+            if (audio) audio.playTurretShot();
+          }
         }
       }
-      if (t.life <= 0 || t.hp <= 0) {
+      if ((!t.permanent && t.life <= 0) || t.hp <= 0) {
         spawnShockwave(state, t.x, t.y, 38, "#94a3b8", 0.2);
         state.turrets.splice(i, 1);
       }
@@ -1524,25 +1934,46 @@
         remove = true;
       }
 
-      if (!remove && !pr.ignoreObstacles && m.pointInObstacle(pr.x, pr.y, 0)) {
-        remove = true;
-        if (pr.kind === "rocket") {
-          detonateExplosion(state, pr.prevX, pr.prevY, pr.blastRadius, pr.damage, pr.weaponId, audio, false);
-        } else if (pr.kind === "vomit" || pr.kind === "acid") {
-          state.acidPools.push({ x: pr.prevX, y: pr.prevY, radius: 36, life: 4.0, maxLife: 4.0, tick: 0 });
-          pr.pooled = true;
-        } else if (pr.kind === "bullet") {
-          for (var sp = 0; sp < 3; sp++) {
-            spawnParticle(state, {
-              x: pr.prevX,
-              y: pr.prevY,
-              vx: (Math.random() - 0.5) * 140,
-              vy: (Math.random() - 0.5) * 140,
-              size: 2.5,
-              endSize: 0.5,
-              color: "#b45309",
-              life: 0.16
-            });
+      var isEnemyProj = pr.kind === "vomit" || pr.kind === "acid" || pr.kind === "sonic";
+      var wallPad = pr.kind === "sonic" ? 10 : (pr.kind === "vomit" || pr.kind === "acid") ? 4 : 0;
+
+      if (!remove && !pr.ignoreObstacles) {
+        var hitMapWall = m.pointInObstacle(pr.x, pr.y, wallPad) || m.segmentHitsObstacle(pr.prevX, pr.prevY, pr.x, pr.y);
+        var hitFortWall = isEnemyProj ? segmentHitsFortStructure(state.fortStructures, pr.prevX, pr.prevY, pr.x, pr.y, wallPad) : null;
+
+        if (hitMapWall || hitFortWall) {
+          remove = true;
+          var hx = hitFortWall ? hitFortWall.x : (hitMapWall && typeof hitMapWall === "object" ? hitMapWall.x : pr.prevX);
+          var hy = hitFortWall ? hitFortWall.y : (hitMapWall && typeof hitMapWall === "object" ? hitMapWall.y : pr.prevY);
+
+          if (hitFortWall && hitFortWall.structure) {
+            hitFortWall.structure.hp -= Math.round(pr.damage * 0.75);
+            hitFortWall.structure.hitFlash = 0.12;
+            if (hitFortWall.structure.hp <= 0) {
+              spawnShockwave(state, hitFortWall.structure.x + hitFortWall.structure.w / 2, hitFortWall.structure.y + hitFortWall.structure.h / 2, 42, "#d97706", 0.25);
+            }
+          }
+
+          if (pr.kind === "rocket") {
+            detonateExplosion(state, hx, hy, pr.blastRadius, pr.damage, pr.weaponId, audio, false);
+          } else if (pr.kind === "vomit" || pr.kind === "acid") {
+            state.acidPools.push({ x: pr.prevX, y: pr.prevY, radius: 34, life: 4.0, maxLife: 4.0, tick: 0 });
+            pr.pooled = true;
+          } else if (pr.kind === "sonic") {
+            spawnShockwave(state, hx, hy, 26, "#a78bfa", 0.16);
+          } else if (pr.kind === "bullet") {
+            for (var sp = 0; sp < 3; sp++) {
+              spawnParticle(state, {
+                x: pr.prevX,
+                y: pr.prevY,
+                vx: (Math.random() - 0.5) * 140,
+                vy: (Math.random() - 0.5) * 140,
+                size: 2.5,
+                endSize: 0.5,
+                color: "#b45309",
+                life: 0.16
+              });
+            }
           }
         }
       }
@@ -1550,7 +1981,9 @@
       if (!remove) {
         if (pr.kind === "vomit" || pr.kind === "acid") {
           var dp = Math.hypot(pr.x - state.player.x, pr.y - state.player.y);
-          if (dp <= pr.radius + state.player.radius) {
+          if (dp <= pr.radius + state.player.radius &&
+              !m.segmentHitsObstacle(pr.x, pr.y, state.player.x, state.player.y) &&
+              !segmentHitsFortStructure(state.fortStructures, pr.x, pr.y, state.player.x, state.player.y, 0)) {
             damagePlayer(state, pr.damage, audio);
             state.player.slowTimer = 1.2;
             state.player.slowFactor = 0.70;
@@ -1560,7 +1993,9 @@
           }
         } else if (pr.kind === "sonic") {
           var ds = Math.hypot(pr.x - state.player.x, pr.y - state.player.y);
-          if (ds <= pr.radius + state.player.radius) {
+          if (ds <= pr.radius + state.player.radius &&
+              !m.segmentHitsObstacle(pr.x, pr.y, state.player.x, state.player.y) &&
+              !segmentHitsFortStructure(state.fortStructures, pr.x, pr.y, state.player.x, state.player.y, 0)) {
             damagePlayer(state, pr.damage, audio);
             state.player.slowTimer = 1.4;
             state.player.slowFactor = 0.65;
@@ -1568,6 +2003,9 @@
             state.player.x += (pr.vx / sLen) * (pr.knockback || 28);
             state.player.y += (pr.vy / sLen) * (pr.knockback || 28);
             m.resolveCircleObstacles(state.player);
+            if (state.fortStructures.length > 0) {
+              resolveCircleFortStructures(state.player, state.fortStructures, true);
+            }
             addShake(state, 9);
             remove = true;
           }
@@ -1622,7 +2060,9 @@
       pool.tick -= dt;
       if (pool.tick <= 0) {
         pool.tick = 0.35;
-        if (Math.hypot(p.x - pool.x, p.y - pool.y) < pool.radius + p.radius * 0.5) {
+        if (Math.hypot(p.x - pool.x, p.y - pool.y) < pool.radius + p.radius * 0.5 &&
+            !state.map.segmentHitsObstacle(pool.x, pool.y, p.x, p.y) &&
+            !segmentHitsFortStructure(state.fortStructures, pool.x, pool.y, p.x, p.y, 0)) {
           damagePlayer(state, 10, audio);
           p.slowTimer = 0.9;
           p.slowFactor = 0.72;
@@ -1859,6 +2299,41 @@
       z.y += (moveDirY * spd + sepY) * dt;
       m.resolveCircleObstacles(z);
 
+      // Fort structure siege & barbed wire interaction
+      if (state.fortStructures.length > 0) {
+        var hitFort = resolveCircleFortStructures(z, state.fortStructures, false);
+        if (hitFort && z.attackCooldown <= 0) {
+          z.attackCooldown = z.attackRate;
+          hitFort.hp -= z.damage;
+          hitFort.hitFlash = 0.12;
+          if (hitFort.hp <= 0) {
+            spawnShockwave(state, hitFort.x + hitFort.w / 2, hitFort.y + hitFort.h / 2, 42, "#d97706", 0.25);
+          }
+        }
+        // Check barbed wire overlap (slow + bleed damage)
+        for (var fi = state.fortStructures.length - 1; fi >= 0; fi--) {
+          var fs = state.fortStructures[fi];
+          if (fs.hitFlash > 0) fs.hitFlash = Math.max(0, fs.hitFlash - dt);
+          if (fs.hp <= 0) {
+            state.fortStructures.splice(fi, 1);
+            continue;
+          }
+          if (fs.dps > 0 && z.x + z.radius > fs.x && z.x - z.radius < fs.x + fs.w && z.y + z.radius > fs.y && z.y - z.radius < fs.y + fs.h) {
+            z.slowTimer = Math.max(z.slowTimer, 0.25);
+            z.slowFactor = Math.min(z.slowFactor, fs.slowFactor || 0.45);
+            z.hp -= fs.dps * dt;
+            fs.hp -= 10 * dt;
+            if (z.hp <= 0) {
+              killZombie(state, z, "turret", audio);
+              state.zombies.splice(i, 1);
+              z.dead = true;
+              break;
+            }
+          }
+        }
+        if (z.dead) continue;
+      }
+
       // Melee collision against player or turret
       if (targetTurret) {
         var tdNow = Math.hypot(targetTurret.x - z.x, targetTurret.y - z.y);
@@ -1992,6 +2467,7 @@
 
   window.GameEntities = {
     ZOMBIE_TYPES: ZOMBIE_TYPES,
+    FORT_DEFS: FORT_DEFS,
     SpatialHash: SpatialHash,
     createWorldState: createWorldState,
     spawnZombie: spawnZombie,
@@ -1999,6 +2475,8 @@
     triggerDash: triggerDash,
     firePrimaryWeapon: firePrimaryWeapon,
     triggerTactical: triggerTactical,
+    placeFortItem: placeFortItem,
+    repairAllFort: repairAllFort,
     spawnA10: spawnA10,
     spawnBomber: spawnBomber,
     spawnChopper: spawnChopper,

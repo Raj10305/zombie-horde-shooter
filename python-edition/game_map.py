@@ -2,6 +2,7 @@
 
 import heapq
 import math
+import os
 import random
 from array import array
 
@@ -21,31 +22,39 @@ _DIRS_COST = (10, 10, 10, 10, 14, 14, 14, 14)
 def create_obstacles(map_id="outpost"):
     if map_id == "ruins":
         return [
-            # Corner skyscraper ruined foundations (L-shaped urban barricades)
-            {"x": 360, "y": 300, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
-            {"x": 360, "y": 354, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
-            {"x": 1780, "y": 300, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
-            {"x": 1986, "y": 354, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
-            {"x": 360, "y": 1446, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
-            {"x": 360, "y": 1276, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
-            {"x": 1780, "y": 1446, "w": 260, "h": 54, "type": "building", "color": (51, 65, 85)},
-            {"x": 1986, "y": 1276, "w": 54, "h": 170, "type": "building", "color": (51, 65, 85)},
-            # Inner street commercial buildings & brick store ruins
-            {"x": 720, "y": 560, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
-            {"x": 1510, "y": 560, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
-            {"x": 720, "y": 1175, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
-            {"x": 1510, "y": 1175, "w": 170, "h": 65, "type": "building", "color": (71, 85, 105)},
-            # Center highway bus barricades (destroyed quarantine transit)
-            {"x": 1110, "y": 360, "w": 180, "h": 52, "type": "wreck_bus", "color": (120, 53, 15)},
-            {"x": 1110, "y": 1388, "w": 180, "h": 52, "type": "wreck_bus", "color": (120, 53, 15)},
-            # Flanking destroyed car wrecks
-            {"x": 310, "y": 840, "w": 56, "h": 120, "type": "car_wreck", "color": (133, 77, 14)},
-            {"x": 2034, "y": 840, "w": 56, "h": 120, "type": "car_wreck", "color": (133, 77, 14)},
-            # Biohazard toxic drum clusters & sandbag checkpoints
-            {"x": 920, "y": 865, "w": 54, "h": 70, "type": "biohazard", "color": (77, 124, 15)},
-            {"x": 1426, "y": 865, "w": 54, "h": 70, "type": "biohazard", "color": (77, 124, 15)},
-            {"x": 1140, "y": 700, "w": 120, "h": 42, "type": "sandbag", "color": (100, 116, 139)},
-            {"x": 1140, "y": 1058, "w": 120, "h": 42, "type": "sandbag", "color": (100, 116, 139)},
+            # Four quadrant abandoned city buildings
+            {"x": 260, "y": 220, "w": 240, "h": 192, "type": "building", "color": (82, 82, 91), "sprite": "assets/maps/city_props/building_gray.png"},
+            {"x": 1860, "y": 220, "w": 240, "h": 192, "type": "building", "color": (120, 113, 108), "sprite": "assets/maps/city_props/building_beige.png"},
+            {"x": 260, "y": 1360, "w": 240, "h": 192, "type": "building", "color": (120, 113, 108), "sprite": "assets/maps/city_props/building_beige.png"},
+            {"x": 1860, "y": 1360, "w": 240, "h": 192, "type": "building", "color": (82, 82, 91), "sprite": "assets/maps/city_props/building_gray.png"},
+            # Inner corner dark ruined apartments
+            {"x": 670, "y": 460, "w": 192, "h": 144, "type": "building", "color": (63, 63, 70), "sprite": "assets/maps/city_props/building_dark.png"},
+            {"x": 1540, "y": 460, "w": 192, "h": 144, "type": "building", "color": (63, 63, 70), "sprite": "assets/maps/city_props/building_dark.png"},
+            {"x": 670, "y": 1200, "w": 192, "h": 144, "type": "building", "color": (63, 63, 70), "sprite": "assets/maps/city_props/building_dark.png"},
+            {"x": 1540, "y": 1200, "w": 192, "h": 144, "type": "building", "color": (63, 63, 70), "sprite": "assets/maps/city_props/building_dark.png"},
+            # Abandoned rusted buses
+            {"x": 1090, "y": 310, "w": 183, "h": 93, "type": "wreck_bus", "color": (133, 77, 14), "sprite": "assets/maps/city_props/bus_yellow_rust.png"},
+            {"x": 1120, "y": 1380, "w": 192, "h": 96, "type": "wreck_bus", "color": (30, 58, 138), "sprite": "assets/maps/city_props/bus_blue_overgrown.png"},
+            # Crashed & flipped vehicles
+            {"x": 350, "y": 820, "w": 129, "h": 81, "type": "car_wreck", "color": (29, 78, 216), "sprite": "assets/maps/city_props/van_blue_rust.png"},
+            {"x": 1920, "y": 830, "w": 117, "h": 60, "type": "car_wreck", "color": (161, 98, 7), "sprite": "assets/maps/city_props/car_scrap_yellow.png"},
+            {"x": 740, "y": 860, "w": 81, "h": 111, "type": "car_wreck", "color": (153, 27, 27), "sprite": "assets/maps/city_props/car_flipped_red.png"},
+            {"x": 1580, "y": 820, "w": 75, "h": 120, "type": "car_wreck", "color": (82, 82, 91), "sprite": "assets/maps/city_props/car_gray_overgrown.png"},
+            # Overgrown shipping containers
+            {"x": 1440, "y": 240, "w": 123, "h": 87, "type": "crate", "color": (127, 29, 29), "sprite": "assets/maps/city_props/container_red_h.png"},
+            {"x": 760, "y": 1470, "w": 123, "h": 87, "type": "crate", "color": (75, 85, 99), "sprite": "assets/maps/city_props/container_gray_h.png"},
+            {"x": 250, "y": 540, "w": 87, "h": 138, "type": "crate", "color": (54, 83, 20), "sprite": "assets/maps/city_props/container_green_v.png"},
+            {"x": 2050, "y": 1100, "w": 87, "h": 138, "type": "crate", "color": (54, 83, 20), "sprite": "assets/maps/city_props/container_green_v.png"},
+            # Dumpsters, vending machines, barrels & trees
+            {"x": 900, "y": 630, "w": 87, "h": 69, "type": "barrier", "color": (63, 98, 18), "sprite": "assets/maps/city_props/dumpster.png"},
+            {"x": 1440, "y": 1090, "w": 87, "h": 69, "type": "barrier", "color": (63, 98, 18), "sprite": "assets/maps/city_props/dumpster.png"},
+            {"x": 920, "y": 1090, "w": 57, "h": 78, "type": "barrier", "color": (153, 27, 27), "sprite": "assets/maps/city_props/vending_red.png"},
+            {"x": 1460, "y": 620, "w": 36, "h": 48, "type": "biohazard", "color": (153, 27, 27), "sprite": "assets/maps/city_props/barrel_red.png"},
+            {"x": 1502, "y": 632, "w": 36, "h": 48, "type": "biohazard", "color": (29, 78, 216), "sprite": "assets/maps/city_props/barrel_blue.png"},
+            {"x": 540, "y": 240, "w": 63, "h": 90, "type": "tree", "color": (63, 98, 18), "sprite": "assets/maps/city_props/tree_dark.png"},
+            {"x": 1740, "y": 1460, "w": 69, "h": 96, "type": "tree", "color": (113, 63, 18), "sprite": "assets/maps/city_props/tree_dry.png"},
+            {"x": 560, "y": 1440, "w": 69, "h": 96, "type": "tree", "color": (113, 63, 18), "sprite": "assets/maps/city_props/tree_dry.png"},
+            {"x": 1750, "y": 250, "w": 63, "h": 90, "type": "tree", "color": (63, 98, 18), "sprite": "assets/maps/city_props/tree_dark.png"},
         ]
 
     return [
@@ -132,23 +141,17 @@ class GameMap:
 
         surf = pygame.Surface((WORLD_W, WORLD_H))
         if self.map_id == "ruins":
-            surf.fill((30, 36, 44))
-            for gx in range(0, WORLD_W + 1, 100):
-                pygame.draw.line(surf, (51, 65, 85), (gx, 0), (gx, WORLD_H), 1)
-            for gy in range(0, WORLD_H + 1, 100):
-                pygame.draw.line(surf, (51, 65, 85), (0, gy), (WORLD_W, gy), 1)
-            pygame.draw.rect(surf, (45, 55, 72), (0, WORLD_H // 2 - 160, WORLD_W, 320))
-            pygame.draw.rect(surf, (45, 55, 72), (WORLD_W // 2 - 160, 0, 320, WORLD_H))
-            cx, cy = WORLD_W // 2, WORLD_H // 2
-            pygame.draw.rect(surf, (37, 47, 62), (cx - 200, cy - 200, 400, 400))
-            caution_color = (202, 138, 4)
-            _draw_dashed_line(pygame, surf, caution_color, (0, cy), (cx - 210, cy), 4, 32, 24)
-            _draw_dashed_line(pygame, surf, caution_color, (cx + 210, cy), (WORLD_W, cy), 4, 32, 24)
-            _draw_dashed_line(pygame, surf, caution_color, (cx, 0), (cx, cy - 210), 4, 32, 24)
-            _draw_dashed_line(pygame, surf, caution_color, (cx, cy + 210), (cx, WORLD_H), 4, 32, 24)
-            pygame.draw.rect(surf, (220, 38, 38), (10, 10, WORLD_W - 20, WORLD_H - 20), 6)
-            decal_surf = pygame.Surface((WORLD_W, WORLD_H), pygame.SRCALPHA)
-            return surf, decal_surf
+            bg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "maps", "abandoned_city_ground.png")
+            if os.path.isfile(bg_path):
+                loaded = pygame.image.load(bg_path).convert()
+                surf.blit(loaded, (0, 0))
+            else:
+                surf.fill((75, 90, 70))
+                pygame.draw.rect(surf, (91, 92, 105), (0, 720, WORLD_W, 360))
+                pygame.draw.rect(surf, (91, 92, 105), (1008, 0, 384, WORLD_H))
+            self.terrain_surface = surf
+            self.decal_surface = pygame.Surface((WORLD_W, WORLD_H), pygame.SRCALPHA)
+            return surf, self.decal_surface
 
         surf.fill((236, 239, 243))
 

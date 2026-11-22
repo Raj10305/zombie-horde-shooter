@@ -375,6 +375,76 @@ body.controls-body {
   background: #b91c1c;
 }
 
+.btn-fort {
+  background: #0f766e;
+  border-color: #115e59;
+  color: #ffffff;
+}
+
+.btn-fort:hover {
+  background: #115e59;
+}
+
+.btn-fort.active {
+  background: #d97706;
+  border-color: #92400e;
+}
+
+.fort-bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #333333;
+  overflow-x: auto;
+  max-width: 100%;
+  touch-action: pan-x;
+}
+
+.fort-item, .fort-tool {
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  background: #f3f4f6;
+  color: #111111;
+  border: 1px solid #666666;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fort-item:hover, .fort-tool:hover {
+  background: #e5e7eb;
+}
+
+.fort-item.active {
+  background: #fef3c7;
+  border: 2px solid #b45309;
+  color: #78350f;
+}
+
+.fort-item.fort-demolish.active {
+  background: #fee2e2;
+  border: 2px solid #b91c1c;
+  color: #7f1d1d;
+}
+
+.fort-tool.fort-exit {
+  background: #111111;
+  color: #ffffff;
+  border-color: #111111;
+}
+
+.fort-sep {
+  width: 1px;
+  height: 22px;
+  background: #bbbbbb;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
 .boss-bar-wrap {
   width: 340px;
   background: #ffffff;

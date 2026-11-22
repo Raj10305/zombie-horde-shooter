@@ -26,6 +26,11 @@
     zombiesText: document.getElementById("zombiesText"),
     modeBadge: document.getElementById("modeBadge"),
     sandboxHordeBtn: document.getElementById("sandboxHordeBtn"),
+    sandboxBuildBtn: document.getElementById("sandboxBuildBtn"),
+    fortBar: document.getElementById("fortBar"),
+    fortRotateBtn: document.getElementById("fortRotateBtn"),
+    fortRepairBtn: document.getElementById("fortRepairBtn"),
+    fortExitBtn: document.getElementById("fortExitBtn"),
     bossBarWrap: document.getElementById("bossBarWrap"),
     bossName: document.getElementById("bossName"),
     bossBar: document.getElementById("bossBar"),
@@ -108,7 +113,13 @@
       mouseWorldY: 900,
       firing: false,
       moveX: 0,
-      moveY: 0
+      moveY: 0,
+      buildMode: null
+    },
+    build: {
+      active: false,
+      itemId: "wood_wall",
+      vertical: false
     },
     touch: {
       enabled: ("ontouchstart" in window) || ((navigator.maxTouchPoints || 0) > 0),
@@ -224,18 +235,21 @@
     dom.lowHpVignette.classList.add("hidden");
 
     if (dom.mapBadge) {
-      dom.mapBadge.textContent = app.map.id === "ruins" ? "RUINS" : "OUTPOST";
+      dom.mapBadge.textContent = app.map.id === "ruins" ? "ABANDONED CITY" : "OUTPOST";
     }
 
     if (mode === "sandbox") {
       dom.modeBadge.textContent = "SANDBOX CHAOS";
       dom.modeBadge.classList.add("sandbox");
       dom.sandboxHordeBtn.classList.remove("hidden");
+      if (dom.sandboxBuildBtn) dom.sandboxBuildBtn.classList.remove("hidden");
     } else {
       dom.modeBadge.textContent = "SURVIVAL";
       dom.modeBadge.classList.remove("sandbox");
       dom.sandboxHordeBtn.classList.add("hidden");
+      if (dom.sandboxBuildBtn) dom.sandboxBuildBtn.classList.add("hidden");
     }
+    setFortBuildActive(false);
 
     buildWeaponDock();
     updateActiveWeaponHint();
@@ -666,9 +680,21 @@
     dom.lowHpVignette.classList.add("hidden");
   }
 
+  function setFortBuildActive(active) {
+    var on = !!(active && app.mode === "sandbox");
+    app.build.active = on;
+    app.input.buildMode = app.build;
+    if (on) {
+      app.input.firing = false;
+    }
+    if (dom.fortBar) dom.fortBar.classList.toggle("hidden", !on);
+    if (dom.sandboxBuildBtn) dom.sandboxBuildBtn.classList.toggle("active", on);
+  }
+
   function returnToMenu() {
     app.phase = "menu";
     app.input.firing = false;
+    setFortBuildActive(false);
     syncTouchControlsVisibility();
     dom.hudTop.classList.add("hidden");
     dom.hudBottom.classList.add("hidden");
@@ -904,6 +930,13 @@
       window.GameEntities.triggerDash(app.state, app.input.moveX, app.input.moveY, window.SoundEngine);
     } else if (e.code === "KeyH" && app.mode === "sandbox") {
       spawnSandboxMegaHorde();
+    } else if (e.code === "KeyF" && app.mode === "sandbox") {
+      setFortBuildActive(!app.build.active);
+    } else if (e.code === "KeyR" && app.mode === "sandbox" && app.build.active) {
+      app.build.vertical = !app.build.vertical;
+      if (dom.fortRotateBtn) {
+        dom.fortRotateBtn.textContent = "ROTATE [R]: " + (app.build.vertical ? "V" : "H");
+      }
     }
   });
 
@@ -920,7 +953,19 @@
   canvas.addEventListener("mousedown", function (e) {
     window.SoundEngine.unlock();
     if (e.button === 0 && app.phase === "playing") {
-      app.input.firing = true;
+      if (app.build.active && app.mode === "sandbox") {
+        updateInputAxes();
+        window.GameEntities.placeFortItem(
+          app.state,
+          app.build.itemId,
+          app.input.mouseWorldX,
+          app.input.mouseWorldY,
+          app.build.vertical,
+          window.SoundEngine
+        );
+      } else {
+        app.input.firing = true;
+      }
     }
   });
 
@@ -1049,6 +1094,16 @@
     e.preventDefault();
     window.SoundEngine.unlock();
     enableTouchControls();
+    if (app.build.active && app.mode === "sandbox" && e.changedTouches.length > 0) {
+      var bt = e.changedTouches[0];
+      var brect = canvas.getBoundingClientRect();
+      var bsx = bt.clientX - brect.left;
+      var bsy = bt.clientY - brect.top;
+      var bwx = app.camera.x + (bsx - viewW / 2) / viewScale;
+      var bwy = app.camera.y + (bsy - viewH / 2) / viewScale;
+      window.GameEntities.placeFortItem(app.state, app.build.itemId, bwx, bwy, app.build.vertical, window.SoundEngine);
+      return;
+    }
     if (app.touch.canvasId === null && e.changedTouches.length > 0) {
       var t = e.changedTouches[0];
       var rect = canvas.getBoundingClientRect();
@@ -1115,6 +1170,40 @@
   dom.btnSurvival.addEventListener("click", function () { startRun("survival"); });
   dom.btnSandbox.addEventListener("click", function () { startRun("sandbox"); });
   dom.sandboxHordeBtn.addEventListener("click", spawnSandboxMegaHorde);
+  if (dom.sandboxBuildBtn) {
+    dom.sandboxBuildBtn.addEventListener("click", function () {
+      setFortBuildActive(!app.build.active);
+    });
+  }
+  if (dom.fortBar) {
+    dom.fortBar.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-fort]");
+      if (!btn) return;
+      app.build.itemId = btn.getAttribute("data-fort") || "wood_wall";
+      var items = dom.fortBar.querySelectorAll("[data-fort]");
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.toggle("active", items[i] === btn);
+      }
+      window.SoundEngine.playSwitch();
+    });
+  }
+  if (dom.fortRotateBtn) {
+    dom.fortRotateBtn.addEventListener("click", function () {
+      app.build.vertical = !app.build.vertical;
+      dom.fortRotateBtn.textContent = "ROTATE [R]: " + (app.build.vertical ? "V" : "H");
+      window.SoundEngine.playSwitch();
+    });
+  }
+  if (dom.fortRepairBtn) {
+    dom.fortRepairBtn.addEventListener("click", function () {
+      window.GameEntities.repairAllFort(app.state, window.SoundEngine);
+    });
+  }
+  if (dom.fortExitBtn) {
+    dom.fortExitBtn.addEventListener("click", function () {
+      setFortBuildActive(false);
+    });
+  }
   dom.armoryBtn.addEventListener("click", openArmory);
   dom.closeArmoryBtn.addEventListener("click", closeArmory);
   dom.pauseBtn.addEventListener("click", togglePause);

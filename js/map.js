@@ -13,8 +13,8 @@
     },
     ruins: {
       id: "ruins",
-      name: "Quarantine City Ruins",
-      subtitle: "Downtown urban ruins, narrow alleys, car wrecks & biohazard drums",
+      name: "Abandoned City",
+      subtitle: "Overgrown pixel-art city ruins, rusted buses, flipped cars & shipping containers",
       theme: "urban"
     }
   };
@@ -22,38 +22,44 @@
   function createObstacles(mapId) {
     if (mapId === "ruins") {
       return [
-        // Corner skyscraper ruined foundations (L-shaped urban barricades)
-        { x: 360, y: 300, w: 260, h: 54, type: "building", color: "#334155" },
-        { x: 360, y: 354, w: 54, h: 170, type: "building", color: "#334155" },
+        // Four quadrant abandoned city buildings (exact 3x pixel-art sprite sizes)
+        { x: 260, y: 220, w: 240, h: 192, type: "building", color: "#52525b", sprite: "assets/maps/city_props/building_gray.png" },
+        { x: 1860, y: 220, w: 240, h: 192, type: "building", color: "#78716c", sprite: "assets/maps/city_props/building_beige.png" },
+        { x: 260, y: 1360, w: 240, h: 192, type: "building", color: "#78716c", sprite: "assets/maps/city_props/building_beige.png" },
+        { x: 1860, y: 1360, w: 240, h: 192, type: "building", color: "#52525b", sprite: "assets/maps/city_props/building_gray.png" },
 
-        { x: 1780, y: 300, w: 260, h: 54, type: "building", color: "#334155" },
-        { x: 1986, y: 354, w: 54, h: 170, type: "building", color: "#334155" },
+        // Inner corner storefronts / dark ruined apartments
+        { x: 670, y: 460, w: 192, h: 144, type: "building", color: "#3f3f46", sprite: "assets/maps/city_props/building_dark.png" },
+        { x: 1540, y: 460, w: 192, h: 144, type: "building", color: "#3f3f46", sprite: "assets/maps/city_props/building_dark.png" },
+        { x: 670, y: 1200, w: 192, h: 144, type: "building", color: "#3f3f46", sprite: "assets/maps/city_props/building_dark.png" },
+        { x: 1540, y: 1200, w: 192, h: 144, type: "building", color: "#3f3f46", sprite: "assets/maps/city_props/building_dark.png" },
 
-        { x: 360, y: 1446, w: 260, h: 54, type: "building", color: "#334155" },
-        { x: 360, y: 1276, w: 54, h: 170, type: "building", color: "#334155" },
+        // Abandoned rusted transit buses blocking north & south avenues
+        { x: 1090, y: 310, w: 183, h: 93, type: "wreck_bus", color: "#854d0e", sprite: "assets/maps/city_props/bus_yellow_rust.png" },
+        { x: 1120, y: 1380, w: 192, h: 96, type: "wreck_bus", color: "#1e3a8a", sprite: "assets/maps/city_props/bus_blue_overgrown.png" },
 
-        { x: 1780, y: 1446, w: 260, h: 54, type: "building", color: "#334155" },
-        { x: 1986, y: 1276, w: 54, h: 170, type: "building", color: "#334155" },
+        // Crashed & flipped vehicles on east/west boulevards
+        { x: 350, y: 820, w: 129, h: 81, type: "car_wreck", color: "#1d4ed8", sprite: "assets/maps/city_props/van_blue_rust.png" },
+        { x: 1920, y: 830, w: 117, h: 60, type: "car_wreck", color: "#a16207", sprite: "assets/maps/city_props/car_scrap_yellow.png" },
+        { x: 740, y: 860, w: 81, h: 111, type: "car_wreck", color: "#991b1b", sprite: "assets/maps/city_props/car_flipped_red.png" },
+        { x: 1580, y: 820, w: 75, h: 120, type: "car_wreck", color: "#52525b", sprite: "assets/maps/city_props/car_gray_overgrown.png" },
 
-        // Inner street commercial buildings & brick store ruins
-        { x: 720, y: 560, w: 170, h: 65, type: "building", color: "#475569" },
-        { x: 1510, y: 560, w: 170, h: 65, type: "building", color: "#475569" },
-        { x: 720, y: 1175, w: 170, h: 65, type: "building", color: "#475569" },
-        { x: 1510, y: 1175, w: 170, h: 65, type: "building", color: "#475569" },
+        // Overgrown shipping containers & street barricades
+        { x: 1440, y: 240, w: 123, h: 87, type: "crate", color: "#7f1d1d", sprite: "assets/maps/city_props/container_red_h.png" },
+        { x: 760, y: 1470, w: 123, h: 87, type: "crate", color: "#4b5563", sprite: "assets/maps/city_props/container_gray_h.png" },
+        { x: 250, y: 540, w: 87, h: 138, type: "crate", color: "#365314", sprite: "assets/maps/city_props/container_green_v.png" },
+        { x: 2050, y: 1100, w: 87, h: 138, type: "crate", color: "#365314", sprite: "assets/maps/city_props/container_green_v.png" },
 
-        // Center highway bus barricades (destroyed quarantine transit)
-        { x: 1110, y: 360, w: 180, h: 52, type: "wreck_bus", color: "#78350f" },
-        { x: 1110, y: 1388, w: 180, h: 52, type: "wreck_bus", color: "#78350f" },
-
-        // Flanking destroyed car wrecks
-        { x: 310, y: 840, w: 56, h: 120, type: "car_wreck", color: "#854d0e" },
-        { x: 2034, y: 840, w: 56, h: 120, type: "car_wreck", color: "#854d0e" },
-
-        // Biohazard toxic drum clusters & sandbag checkpoints
-        { x: 920, y: 865, w: 54, h: 70, type: "biohazard", color: "#4d7c0f" },
-        { x: 1426, y: 865, w: 54, h: 70, type: "biohazard", color: "#4d7c0f" },
-        { x: 1140, y: 700, w: 120, h: 42, type: "sandbag", color: "#64748b" },
-        { x: 1140, y: 1058, w: 120, h: 42, type: "sandbag", color: "#64748b" }
+        // Dumpsters, vending machines, rusted barrels & overgrown trees
+        { x: 900, y: 630, w: 87, h: 69, type: "barrier", color: "#3f6212", sprite: "assets/maps/city_props/dumpster.png" },
+        { x: 1440, y: 1090, w: 87, h: 69, type: "barrier", color: "#3f6212", sprite: "assets/maps/city_props/dumpster.png" },
+        { x: 920, y: 1090, w: 57, h: 78, type: "barrier", color: "#991b1b", sprite: "assets/maps/city_props/vending_red.png" },
+        { x: 1460, y: 620, w: 36, h: 48, type: "biohazard", color: "#991b1b", sprite: "assets/maps/city_props/barrel_red.png" },
+        { x: 1502, y: 632, w: 36, h: 48, type: "biohazard", color: "#1d4ed8", sprite: "assets/maps/city_props/barrel_blue.png" },
+        { x: 540, y: 240, w: 63, h: 90, type: "tree", color: "#3f6212", sprite: "assets/maps/city_props/tree_dark.png" },
+        { x: 1740, y: 1460, w: 69, h: 96, type: "tree", color: "#713f12", sprite: "assets/maps/city_props/tree_dry.png" },
+        { x: 560, y: 1440, w: 69, h: 96, type: "tree", color: "#713f12", sprite: "assets/maps/city_props/tree_dry.png" },
+        { x: 1750, y: 250, w: 63, h: 90, type: "tree", color: "#3f6212", sprite: "assets/maps/city_props/tree_dark.png" }
       ];
     }
 
@@ -98,104 +104,26 @@
     var ctx = c.getContext("2d");
 
     if (mapId === "ruins") {
-      // Atmospheric post-apocalyptic urban ruins: dark cracked asphalt & debris
-      ctx.fillStyle = "#1e242c";
+      // Initial fallback while pixel-art Abandoned City ground PNG loads
+      ctx.fillStyle = "#4b5a46";
       ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#5b5c69";
+      ctx.fillRect(0, 720, w, 360);
+      ctx.fillRect(1008, 0, 384, h);
+      ctx.strokeStyle = "rgba(185, 28, 28, 0.7)";
+      ctx.lineWidth = 5;
+      ctx.strokeRect(8, 8, w - 16, h - 16);
 
-      // Cracked city sidewalk grid
-      ctx.strokeStyle = "#334155";
-      ctx.lineWidth = 1.5;
-      for (var rx = 0; rx <= w; rx += 100) {
-        ctx.beginPath();
-        ctx.moveTo(rx, 0);
-        ctx.lineTo(rx, h);
-        ctx.stroke();
+      if (typeof Image !== "undefined") {
+        var bgImg = new Image();
+        bgImg.onload = function () {
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(bgImg, 0, 0, w, h);
+          ctx.restore();
+        };
+        bgImg.src = "assets/maps/abandoned_city_ground.png";
       }
-      for (var ry = 0; ry <= h; ry += 100) {
-        ctx.beginPath();
-        ctx.moveTo(0, ry);
-        ctx.lineTo(w, ry);
-        ctx.stroke();
-      }
-
-      // Main damaged boulevard avenues (dual carriageway)
-      ctx.fillStyle = "#2d3748";
-      ctx.fillRect(0, h / 2 - 160, w, 320);
-      ctx.fillRect(w / 2 - 160, 0, 320, h);
-
-      // Cracked central intersection plaza
-      ctx.fillStyle = "#252f3e";
-      ctx.fillRect(w / 2 - 200, h / 2 - 200, 400, 400);
-
-      // Pedestrian crosswalk stripes
-      ctx.fillStyle = "rgba(226, 232, 240, 0.28)";
-      var stripeW = 12;
-      for (var cw = -150; cw <= 150; cw += 26) {
-        // Horizontal avenue crosswalks
-        ctx.fillRect(w / 2 - 220, h / 2 + cw, stripeW, 18);
-        ctx.fillRect(w / 2 + 208, h / 2 + cw, stripeW, 18);
-        // Vertical avenue crosswalks
-        ctx.fillRect(w / 2 + cw, h / 2 - 220, 18, stripeW);
-        ctx.fillRect(w / 2 + cw, h / 2 + 208, 18, stripeW);
-      }
-
-      // Yellow hazard caution road stripes (decayed quarantine markings)
-      ctx.strokeStyle = "rgba(202, 138, 4, 0.45)";
-      ctx.lineWidth = 4;
-      ctx.setLineDash([32, 24]);
-      ctx.beginPath();
-      ctx.moveTo(0, h / 2 - 3);
-      ctx.lineTo(w / 2 - 210, h / 2 - 3);
-      ctx.moveTo(w / 2 + 210, h / 2 - 3);
-      ctx.lineTo(w, h / 2 - 3);
-      ctx.moveTo(w / 2 - 3, 0);
-      ctx.lineTo(w / 2 - 3, h / 2 - 210);
-      ctx.moveTo(w / 2 - 3, h / 2 + 210);
-      ctx.lineTo(w / 2 - 3, h);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Hazard biohazard sector text stencil in central plaza
-      ctx.save();
-      ctx.translate(w / 2, h / 2);
-      ctx.fillStyle = "rgba(234, 179, 8, 0.18)";
-      ctx.font = "900 32px monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("QUARANTINE SECTOR 4", 0, -28);
-      ctx.font = "700 16px monospace";
-      ctx.fillText("[BIOHAZARD ACTIVE - AUTHORIZED ONLY]", 0, 8);
-
-      // Biohazard circle emblem
-      ctx.strokeStyle = "rgba(234, 179, 8, 0.25)";
-      ctx.lineWidth = 3;
-      ctx.setLineDash([14, 10]);
-      ctx.beginPath();
-      ctx.arc(0, 0, 150, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      // Debris, oil slicks, asphalt cracks
-      var seed2 = 4242;
-      function rand2() {
-        seed2 = (seed2 * 16807) % 2147483647;
-        return (seed2 - 1) / 2147483646;
-      }
-      for (var d = 0; d < 800; d++) {
-        var dx = rand2() * w;
-        var dy = rand2() * h;
-        var dr = 1.5 + rand2() * 4.5;
-        ctx.fillStyle = rand2() > 0.4 ? "rgba(15, 23, 42, 0.65)" : "rgba(100, 116, 139, 0.22)";
-        ctx.beginPath();
-        ctx.arc(dx, dy, dr, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Outer quarantine border
-      ctx.strokeStyle = "rgba(220, 38, 38, 0.7)";
-      ctx.lineWidth = 6;
-      ctx.strokeRect(10, 10, w - 20, h - 20);
-
       return c;
     }
 

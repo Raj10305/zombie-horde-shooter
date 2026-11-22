@@ -3,7 +3,7 @@
 import json
 import os
 import random
-import pygame  # pyright: ignore[reportMissingImports]
+import pygame
 
 import audio
 import entities

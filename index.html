@@ -54,6 +54,7 @@
           <span id="waveText" class="wave-title">WAVE 1</span>
           <span id="zombiesText" class="zombies-left">0 LEFT</span>
           <button id="sandboxHordeBtn" class="btn-mini btn-danger hidden" title="Spawn Extra Horde [H]">+ HORDE [H]</button>
+          <button id="sandboxBuildBtn" class="btn-mini btn-fort hidden" title="Toggle Fort Builder [F]">FORT BUILD [F]</button>
         </div>
         <div id="bossBarWrap" class="boss-bar-wrap hidden">
           <div class="boss-header">
@@ -84,6 +85,23 @@
 
     <!-- BOTTOM WEAPON DOCK -->
     <footer id="hudBottom" class="hud-bottom hidden">
+      <div id="fortBar" class="fort-bar hidden">
+        <button type="button" class="fort-item active" data-fort="wood_wall">WOOD WALL</button>
+        <button type="button" class="fort-item" data-fort="reinforced_wall">REINF WALL</button>
+        <button type="button" class="fort-item" data-fort="fort_gate">GATE</button>
+        <button type="button" class="fort-item" data-fort="wire_fence">BARBED WIRE</button>
+        <span class="fort-sep"></span>
+        <button type="button" class="fort-item" data-fort="mg_turret">MG TURRET</button>
+        <button type="button" class="fort-item" data-fort="shotgun_turret">SHOTGUN</button>
+        <button type="button" class="fort-item" data-fort="flame_turret">FLAME</button>
+        <button type="button" class="fort-item" data-fort="tesla_turret">TESLA</button>
+        <button type="button" class="fort-item" data-fort="rpg_turret">ROCKET</button>
+        <span class="fort-sep"></span>
+        <button id="fortRotateBtn" type="button" class="fort-tool">ROTATE [R]: H</button>
+        <button type="button" class="fort-item fort-demolish" data-fort="demolish">DEMOLISH</button>
+        <button id="fortRepairBtn" type="button" class="fort-tool">REPAIR ALL</button>
+        <button id="fortExitBtn" type="button" class="fort-tool fort-exit">DONE [F]</button>
+      </div>
       <div id="activeWeaponHint" class="active-weapon-hint">M4 ASSAULT RIFLE • LV 1</div>
       <div id="weaponDock" class="weapon-dock"></div>
     </footer>
@@ -113,7 +131,7 @@
           <label for="mapSelect">MAP:</label>
           <select id="mapSelect">
             <option value="outpost">Military Outpost</option>
-            <option value="ruins">Quarantine City Ruins</option>
+            <option value="ruins">Abandoned City</option>
           </select>
         </div>
         <div class="start-buttons">
@@ -172,7 +190,7 @@
           <label for="pauseMapSelect">Map:</label>
           <select id="pauseMapSelect">
             <option value="outpost">Military Outpost</option>
-            <option value="ruins">Quarantine City Ruins</option>
+            <option value="ruins">Abandoned City</option>
           </select>
         </div>
         <div class="stack-buttons">
@@ -202,7 +220,7 @@
           <label for="goMapSelect">Map:</label>
           <select id="goMapSelect">
             <option value="outpost">Military Outpost</option>
-            <option value="ruins">Quarantine City Ruins</option>
+            <option value="ruins">Abandoned City</option>
           </select>
         </div>
         <div class="stack-buttons">

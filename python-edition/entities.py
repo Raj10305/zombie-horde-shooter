@@ -1445,15 +1445,21 @@ def _update_projectiles(state, dt, audio):
         ):
             remove = True
 
-        if not remove and not pr.ignore_obstacles and m.point_in_obstacle(pr.x, pr.y, 0):
+        wall_pad = 10 if pr.kind == "sonic" else (4 if pr.kind in ("vomit", "acid") else 0)
+        if not remove and not pr.ignore_obstacles and (
+            m.point_in_obstacle(pr.x, pr.y, wall_pad)
+            or m.segment_hits_obstacle(pr.prev_x, pr.prev_y, pr.x, pr.y)
+        ):
             remove = True
             if pr.kind == "rocket":
                 detonate_explosion(state, pr.prev_x, pr.prev_y, pr.blast_radius, pr.damage, pr.weapon_id, audio, False)
             elif pr.kind in ("vomit", "acid"):
                 state.acid_pools.append(
-                    SimpleNamespace(x=pr.prev_x, y=pr.prev_y, radius=36, life=4.0, max_life=4.0, tick=0.0)
+                    SimpleNamespace(x=pr.prev_x, y=pr.prev_y, radius=34, life=4.0, max_life=4.0, tick=0.0)
                 )
                 pr.pooled = True
+            elif pr.kind == "sonic":
+                spawn_shockwave(state, pr.prev_x, pr.prev_y, 26, (167, 139, 250), 0.16)
             elif pr.kind == "bullet":
                 for _ in range(3):
                     spawn_particle(
@@ -1470,7 +1476,10 @@ def _update_projectiles(state, dt, audio):
 
         if not remove:
             if pr.kind in ("vomit", "acid"):
-                if math.hypot(pr.x - state.player.x, pr.y - state.player.y) <= pr.radius + state.player.radius:
+                if (
+                    math.hypot(pr.x - state.player.x, pr.y - state.player.y) <= pr.radius + state.player.radius
+                    and not m.segment_hits_obstacle(pr.x, pr.y, state.player.x, state.player.y)
+                ):
                     damage_player(state, pr.damage, audio)
                     state.acid_pools.append(
                         SimpleNamespace(x=pr.x, y=pr.y, radius=40, life=4.5, max_life=4.5, tick=0.0)
@@ -1478,7 +1487,10 @@ def _update_projectiles(state, dt, audio):
                     pr.pooled = True
                     remove = True
             elif pr.kind == "sonic":
-                if math.hypot(pr.x - state.player.x, pr.y - state.player.y) <= pr.radius + state.player.radius:
+                if (
+                    math.hypot(pr.x - state.player.x, pr.y - state.player.y) <= pr.radius + state.player.radius
+                    and not m.segment_hits_obstacle(pr.x, pr.y, state.player.x, state.player.y)
+                ):
                     damage_player(state, pr.damage, audio)
                     s_len = math.hypot(pr.vx, pr.vy) or 1.0
                     state.player.x += (pr.vx / s_len) * (pr.knockback or 24)
