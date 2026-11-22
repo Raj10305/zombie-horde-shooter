@@ -24,11 +24,8 @@ jobs:
         run: pip install pyinstaller pywebview
 
       - name: Build Windows Standalone EXE
-        run: |
-          pyinstaller --noconfirm --onefile --windowed ^
-            --name DEADLINE-SKYFIRE ^
-            --add-data "www;www" ^
-            desktop_app.py
+        shell: cmd
+        run: pyinstaller --noconfirm --onefile --windowed --name DEADLINE-SKYFIRE --add-data "www;www" desktop_app.py
 
       - name: Upload Windows EXE artifact
         uses: actions/upload-artifact@v4
