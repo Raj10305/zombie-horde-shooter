@@ -51,9 +51,24 @@
         <div class="wave-pill">
           <span id="mapBadge" class="mode-tag map-tag">OUTPOST</span>
           <span id="modeBadge" class="mode-tag">SURVIVAL</span>
+          <span id="suitBadge" class="mode-tag suit-tag hidden">SUIT MK-I</span>
           <span id="waveText" class="wave-title">WAVE 1</span>
           <span id="zombiesText" class="zombies-left">0 LEFT</span>
-          <button id="sandboxHordeBtn" class="btn-mini btn-danger hidden" title="Spawn Extra Horde [H]">+ HORDE [H]</button>
+          <span id="sandboxSpawnControls" class="sandbox-spawner hidden">
+            <input id="sandboxSpawnCount" class="sandbox-count-input" type="number" min="1" max="250" value="25" title="Number of zombies to spawn" />
+            <select id="sandboxSpawnType" class="sandbox-type-select" title="Zombie type to spawn">
+              <option value="mixed">Mixed</option>
+              <option value="shambler">Shambler</option>
+              <option value="runner">Runner</option>
+              <option value="brute">Brute</option>
+              <option value="spitter">Spitter</option>
+              <option value="screamer">Screamer</option>
+              <option value="exploder">Boomer</option>
+              <option value="boss">Boss</option>
+            </select>
+            <button id="sandboxHordeBtn" class="btn-mini btn-danger" title="Spawn Selected Zombies [H]">SPAWN [H]</button>
+            <button id="sandboxClearBtn" class="btn-mini btn-clear" title="Clear All Zombies">CLEAR</button>
+          </span>
           <button id="sandboxBuildBtn" class="btn-mini btn-fort hidden" title="Toggle Fort Builder [F]">FORT BUILD [F]</button>
         </div>
         <div id="bossBarWrap" class="boss-bar-wrap hidden">
@@ -170,6 +185,14 @@
             <button id="buyMedkitBtn" class="btn-supply">+ Medkit ($120)</button>
             <button id="buyArmorBtn" class="btn-supply">+ Full Armor ($180)</button>
           </div>
+        </div>
+
+        <div id="exoSuitBanner" class="exo-suit-banner">
+          <div class="exo-suit-info">
+            <strong id="exoSuitTitle">EXO-SUIT SELF-DEFENSE: NOT INSTALLED (LV 0/5)</strong>
+            <span id="exoSuitDesc" class="muted">Install Iron Man-style autonomous shoulder micro-guns, Arc Repulsors, homing rockets, and MK-V Chest Unibeam!</span>
+          </div>
+          <button id="upgradeSuitBtn" type="button" class="btn-suit-upgrade">INSTALL MK-I ($300)</button>
         </div>
 
         <div id="armoryGrid" class="armory-grid"></div>

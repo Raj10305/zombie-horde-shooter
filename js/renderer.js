@@ -633,6 +633,34 @@
       ctx.stroke();
     }
 
+    // Iron Man Exo-Suit Defense System aura & shoulder pods
+    if (p.exoSuitLevel > 0) {
+      var pulse = 0.65 + Math.sin((time || 0) * 8) * 0.25;
+      ctx.save();
+      ctx.strokeStyle = p.exoSuitLevel >= 5 ? "rgba(250, 204, 21, " + pulse + ")" : "rgba(56, 189, 248, " + pulse + ")";
+      ctx.lineWidth = p.exoSuitLevel >= 3 ? 2.5 : 1.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.radius + 9, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Twin shoulder defense pods
+      ctx.fillStyle = p.exoSuitLevel >= 5 ? "#facc15" : "#38bdf8";
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(-16, -12, p.exoSuitLevel >= 3 ? 5 : 3.5, 0, Math.PI * 2);
+      ctx.arc(16, -12, p.exoSuitLevel >= 3 ? 5 : 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Glowing Arc Reactor chest core
+      ctx.fillStyle = "#e0f2fe";
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     // Ground shadow
     ctx.fillStyle = "rgba(0,0,0,0.38)";
     ctx.beginPath();

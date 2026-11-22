@@ -220,6 +220,11 @@
         slowFactor: 1,
         overdriveTimer: 0,
         muzzleFlash: 0,
+        exoSuitLevel: 0,
+        exoGunCd: 0,
+        exoRepulsorCd: 0,
+        exoRocketCd: 0,
+        exoUnibeamCd: 0,
         activeWeaponId: "rifle",
         weaponLevels: levels,
         weaponCooldowns: cooldowns,
@@ -1081,6 +1086,154 @@
     return { ok: false, reason: "Unsupported" };
   }
 
+  var EXO_SUIT_LEVELS = [
+    { level: 1, name: "MK-I Micro-Guns", cost: 300, desc: "Auto-targeting shoulder micro-guns shoot nearby zombies" },
+    { level: 2, name: "MK-II Arc Repulsors", cost: 500, desc: "Adds high-knockback cyan Arc Repulsor blasts" },
+    { level: 3, name: "MK-III Shoulder Rockets", cost: 750, desc: "Adds explosive homing micro-missiles from shoulder pods" },
+    { level: 4, name: "MK-IV Dual Salvo", cost: 1100, desc: "Dual Repulsor blasts + 2-rocket salvos + rapid micro-guns" },
+    { level: 5, name: "MK-V Unibeam Suit", cost: 1600, desc: "Full autonomous suit + piercing Chest Unibeam laser + 3-rocket salvo" }
+  ];
+
+  function updateExoSuit(state, dt, audio) {
+    var p = state.player;
+    var lv = p.exoSuitLevel || 0;
+    if (lv <= 0 || p.hp <= 0) return;
+
+    p.exoGunCd = Math.max(0, (p.exoGunCd || 0) - dt);
+    p.exoRepulsorCd = Math.max(0, (p.exoRepulsorCd || 0) - dt);
+    p.exoRocketCd = Math.max(0, (p.exoRocketCd || 0) - dt);
+    p.exoUnibeamCd = Math.max(0, (p.exoUnibeamCd || 0) - dt);
+
+    // Lv 1+: Twin Shoulder Micro-Guns
+    if (p.exoGunCd <= 0) {
+      var gTarget = findNearestZombie(state, p.x, p.y, 340 + lv * 20);
+      if (gTarget) {
+        var gRate = 4.2 + lv * 1.1;
+        p.exoGunCd = 1 / gRate;
+        var gAng = Math.atan2(gTarget.y - p.y, gTarget.x - p.x) + (Math.random() - 0.5) * 0.06;
+        var side = (state.nextId % 2 === 0) ? 1 : -1;
+        var sx = p.x + Math.cos(gAng + Math.PI / 2) * 11 * side;
+        var sy = p.y + Math.sin(gAng + Math.PI / 2) * 11 * side;
+        state.projectiles.push({
+          id: state.nextId++,
+          kind: "bullet",
+          weaponId: "turret",
+          x: sx, y: sy, prevX: sx, prevY: sy,
+          vx: Math.cos(gAng) * 1020, vy: Math.sin(gAng) * 1020,
+          radius: 3.5, damage: 18 + lv * 4, pierceLeft: 1, blastRadius: 0,
+          rangeLeft: 380 + lv * 20, life: 0.9, maxLife: 0.9,
+          hitIds: Object.create(null), knockback: 5, color: "#facc15"
+        });
+        if (audio) audio.playTurretShot();
+      }
+    }
+
+    // Lv 2+: Arc Repulsor Blasts (instant cyan beam + heavy knockback)
+    if (lv >= 2 && p.exoRepulsorCd <= 0) {
+      var repRange = 260 + lv * 15;
+      var nearRep = state.hash.query(p.x, p.y, repRange);
+      var targets = [];
+      for (var i = 0; i < nearRep.length; i++) {
+        var cand = nearRep[i];
+        if (!cand.dead) targets.push(cand);
+      }
+      if (targets.length > 0) {
+        targets.sort(function (a, b) {
+          return Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y);
+        });
+        var shots = lv >= 4 ? Math.min(2, targets.length) : 1;
+        p.exoRepulsorCd = lv >= 4 ? 0.95 : 1.25;
+        for (var s = 0; s < shots; s++) {
+          var rt = targets[s];
+          var rdx = rt.x - p.x;
+          var rdy = rt.y - p.y;
+          var rlen = Math.hypot(rdx, rdy) || 1;
+          var rx = rdx / rlen;
+          var ry = rdy / rlen;
+          damageZombie(state, rt, 48 + lv * 14, rx * 38, ry * 38, "tesla", audio);
+          spawnShockwave(state, rt.x, rt.y, 44, "#38bdf8", 0.18);
+          state.beams.push({
+            kind: "repulsor",
+            points: [{ x: p.x + rx * 14, y: p.y + ry * 14 }, { x: rt.x, y: rt.y }],
+            color: "#38bdf8",
+            width: 5,
+            life: 0.14,
+            maxLife: 0.14
+          });
+        }
+        if (audio) audio.playTesla();
+      }
+    }
+
+    // Lv 3+: Shoulder Micro-Rockets (explosive salvos)
+    if (lv >= 3 && p.exoRocketCd <= 0) {
+      var rTarget = findNearestZombie(state, p.x, p.y, 460);
+      if (rTarget) {
+        var salvo = lv >= 5 ? 3 : (lv >= 4 ? 2 : 1);
+        p.exoRocketCd = lv >= 5 ? 2.1 : (lv >= 4 ? 2.5 : 3.0);
+        var baseAng = Math.atan2(rTarget.y - p.y, rTarget.x - p.x);
+        for (var ri = 0; ri < salvo; ri++) {
+          var spread = (ri - (salvo - 1) / 2) * 0.16;
+          var ra = baseAng + spread;
+          var rx0 = p.x + Math.cos(ra) * 14;
+          var ry0 = p.y + Math.sin(ra) * 14;
+          state.projectiles.push({
+            id: state.nextId++,
+            kind: "rocket",
+            weaponId: "rpg",
+            x: rx0, y: ry0, prevX: rx0, prevY: ry0,
+            vx: Math.cos(ra) * 640, vy: Math.sin(ra) * 640,
+            radius: 5, damage: 115 + lv * 18, pierceLeft: 1,
+            blastRadius: 92 + lv * 6, rangeLeft: 500,
+            life: 1.3, maxLife: 1.3, hitIds: Object.create(null),
+            knockback: 0, color: "#f97316"
+          });
+        }
+        if (audio) audio.playRocketLaunch();
+      }
+    }
+
+    // Lv 5: Chest Unibeam (wide piercing energy beam)
+    if (lv >= 5 && p.exoUnibeamCd <= 0) {
+      var uTarget = findNearestZombie(state, p.x, p.y, 520);
+      if (uTarget) {
+        p.exoUnibeamCd = 4.2;
+        var uAng = Math.atan2(uTarget.y - p.y, uTarget.x - p.x);
+        var udx = Math.cos(uAng);
+        var udy = Math.sin(uAng);
+        var beamLen = 540;
+        var endX = p.x + udx * beamLen;
+        var endY = p.y + udy * beamLen;
+        var hitWall = state.map.segmentHitsObstacle(p.x, p.y, endX, endY);
+        if (hitWall) {
+          endX = hitWall.x;
+          endY = hitWall.y;
+          beamLen = Math.hypot(endX - p.x, endY - p.y);
+        }
+        for (var zi = 0; zi < state.zombies.length; zi++) {
+          var z = state.zombies[zi];
+          if (z.dead) continue;
+          var proj = (z.x - p.x) * udx + (z.y - p.y) * udy;
+          if (proj < 0 || proj > beamLen) continue;
+          var perp = Math.abs((z.x - p.x) * (-udy) + (z.y - p.y) * udx);
+          if (perp <= z.radius + 26) {
+            damageZombie(state, z, 240, udx * 30, udy * 30, "railgun", audio);
+          }
+        }
+        state.beams.push({
+          kind: "unibeam",
+          points: [{ x: p.x + udx * 12, y: p.y + udy * 12 }, { x: endX, y: endY }],
+          color: "#38bdf8",
+          width: 14,
+          life: 0.28,
+          maxLife: 0.28
+        });
+        addShake(state, 9);
+        if (audio) audio.playRailgun();
+      }
+    }
+  }
+
   function updateWorld(state, dt, input, audio) {
     state.time += dt;
     var p = state.player;
@@ -1175,6 +1328,9 @@
     if (input && input.firing && p.hp > 0) {
       firePrimaryWeapon(state, input.mouseWorldX, input.mouseWorldY, audio);
     }
+
+    // Update Exo-Suit Autonomous Defense System
+    updateExoSuit(state, dt, audio);
 
     // Update Aircraft (A-10, B-52, Apache)
     updateAircraft(state, dt, audio);
@@ -2468,6 +2624,7 @@
   window.GameEntities = {
     ZOMBIE_TYPES: ZOMBIE_TYPES,
     FORT_DEFS: FORT_DEFS,
+    EXO_SUIT_LEVELS: EXO_SUIT_LEVELS,
     SpatialHash: SpatialHash,
     createWorldState: createWorldState,
     spawnZombie: spawnZombie,

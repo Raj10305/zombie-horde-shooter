@@ -3,10 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Capacitor / Node build artifacts (generated in CI)
+# Capacitor / Node / PyInstaller build artifacts (generated locally or in CI)
 node_modules/
 www/
 ios/
+build/
+dist/
+*.spec
 
 # OS metadata
 .DS_Store

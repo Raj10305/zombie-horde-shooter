@@ -25,7 +25,12 @@
     waveText: document.getElementById("waveText"),
     zombiesText: document.getElementById("zombiesText"),
     modeBadge: document.getElementById("modeBadge"),
+    suitBadge: document.getElementById("suitBadge"),
+    sandboxSpawnControls: document.getElementById("sandboxSpawnControls"),
+    sandboxSpawnCount: document.getElementById("sandboxSpawnCount"),
+    sandboxSpawnType: document.getElementById("sandboxSpawnType"),
     sandboxHordeBtn: document.getElementById("sandboxHordeBtn"),
+    sandboxClearBtn: document.getElementById("sandboxClearBtn"),
     sandboxBuildBtn: document.getElementById("sandboxBuildBtn"),
     fortBar: document.getElementById("fortBar"),
     fortRotateBtn: document.getElementById("fortRotateBtn"),
@@ -54,6 +59,9 @@
     armoryGrid: document.getElementById("armoryGrid"),
     buyMedkitBtn: document.getElementById("buyMedkitBtn"),
     buyArmorBtn: document.getElementById("buyArmorBtn"),
+    exoSuitTitle: document.getElementById("exoSuitTitle"),
+    exoSuitDesc: document.getElementById("exoSuitDesc"),
+    upgradeSuitBtn: document.getElementById("upgradeSuitBtn"),
     closeArmoryBtn: document.getElementById("closeArmoryBtn"),
 
     pauseOverlay: document.getElementById("pauseOverlay"),
@@ -239,14 +247,14 @@
     }
 
     if (mode === "sandbox") {
-      dom.modeBadge.textContent = "SANDBOX CHAOS";
+      dom.modeBadge.textContent = "SANDBOX";
       dom.modeBadge.classList.add("sandbox");
-      dom.sandboxHordeBtn.classList.remove("hidden");
+      if (dom.sandboxSpawnControls) dom.sandboxSpawnControls.classList.remove("hidden");
       if (dom.sandboxBuildBtn) dom.sandboxBuildBtn.classList.remove("hidden");
     } else {
       dom.modeBadge.textContent = "SURVIVAL";
       dom.modeBadge.classList.remove("sandbox");
-      dom.sandboxHordeBtn.classList.add("hidden");
+      if (dom.sandboxSpawnControls) dom.sandboxSpawnControls.classList.add("hidden");
       if (dom.sandboxBuildBtn) dom.sandboxBuildBtn.classList.add("hidden");
     }
     setFortBuildActive(false);
@@ -255,7 +263,13 @@
     updateActiveWeaponHint();
     app.phase = "playing";
     syncTouchControlsVisibility();
-    beginNextWave();
+    if (mode === "sandbox") {
+      app.wave.number = 0;
+      app.wave.spawnQueue = [];
+      showBanner("SANDBOX READY", "BUILD FORT [F], UPGRADE EXO-SUIT [B], THEN SPAWN ZOMBIES [H]!", 3.2);
+    } else {
+      beginNextWave();
+    }
   }
 
   function buildWaveQueue(waveNum, mode) {
@@ -312,14 +326,42 @@
 
   function spawnSandboxMegaHorde() {
     if (!app.state || app.phase !== "playing") return;
+    var count = 25;
+    if (dom.sandboxSpawnCount) {
+      var parsed = parseInt(dom.sandboxSpawnCount.value, 10);
+      if (!isNaN(parsed)) count = Math.max(1, Math.min(250, parsed));
+      dom.sandboxSpawnCount.value = String(count);
+    }
+    var chosenType = (dom.sandboxSpawnType && dom.sandboxSpawnType.value) || "mixed";
     var bounds = getViewBounds();
     var types = ["shambler", "runner", "brute", "spitter", "screamer"];
-    for (var i = 0; i < 36; i++) {
-      var t = i === 18 ? "exploder" : types[i % types.length];
-      window.GameEntities.spawnZombieAtEdge(app.state, t, 1 + app.wave.number * 0.12, bounds);
+    var explodersSpawned = 0;
+    var maxExploders = Math.max(1, Math.floor(count / 20));
+    app.wave.number += 1;
+    var scale = 1 + Math.min(2.0, (app.wave.number - 1) * 0.10);
+    for (var i = 0; i < count; i++) {
+      var t = chosenType;
+      if (chosenType === "mixed") {
+        if (explodersSpawned < maxExploders && i > 0 && i % 18 === 0) {
+          t = "exploder";
+          explodersSpawned += 1;
+        } else {
+          t = types[i % types.length];
+        }
+      }
+      window.GameEntities.spawnZombieAtEdge(app.state, t, scale, bounds);
     }
-    showBanner("MEGA HORDE RELEASED!", "LIGHT UP THE SKY WITH AIRSTRIKES!", 2.0);
+    var label = chosenType === "mixed" ? "MIXED HORDE" : chosenType.toUpperCase();
+    showBanner("SPAWNED " + count + " " + label, "DEFEND YOUR FORT!", 1.8);
     window.SoundEngine.playBossWarning();
+  }
+
+  function clearSandboxZombies() {
+    if (!app.state || app.mode !== "sandbox") return;
+    app.state.zombies = [];
+    app.state.acidPools = [];
+    app.wave.spawnQueue = [];
+    showBanner("ARENA CLEARED", "ALL ZOMBIES REMOVED", 1.5);
   }
 
   function getViewBounds() {
@@ -532,8 +574,31 @@
     updateActiveWeaponHint();
   }
 
+  function renderExoSuitBanner() {
+    if (!app.state || !dom.upgradeSuitBtn) return;
+    var levels = window.GameEntities.EXO_SUIT_LEVELS || [];
+    var lv = app.state.player.exoSuitLevel || 0;
+    var maxLv = levels.length;
+    var romans = ["", "MK-I", "MK-II", "MK-III", "MK-IV", "MK-V"];
+    if (lv >= maxLv) {
+      dom.exoSuitTitle.textContent = "EXO-SUIT SELF-DEFENSE: " + romans[lv] + " MAXED (LV 5/5)";
+      dom.exoSuitDesc.textContent = "Active: Shoulder Micro-Guns + Dual Arc Repulsors + 3-Rocket Salvos + Autonomous Chest Unibeam!";
+      dom.upgradeSuitBtn.textContent = "MAX LEVEL";
+      dom.upgradeSuitBtn.disabled = true;
+    } else {
+      var next = levels[lv];
+      var cost = app.mode === "sandbox" ? 0 : next.cost;
+      var curLabel = lv === 0 ? "NOT INSTALLED (LV 0/5)" : (romans[lv] + " ACTIVE (LV " + lv + "/5)");
+      dom.exoSuitTitle.textContent = "EXO-SUIT SELF-DEFENSE: " + curLabel;
+      dom.exoSuitDesc.textContent = "Next — " + next.name + ": " + next.desc;
+      dom.upgradeSuitBtn.textContent = (lv === 0 ? "INSTALL " : "UPGRADE ") + romans[lv + 1] + (cost === 0 ? " (FREE)" : " ($" + cost + ")");
+      dom.upgradeSuitBtn.disabled = app.state.stats.cash < cost;
+    }
+  }
+
   function renderArmory() {
     if (!app.state) return;
+    renderExoSuitBanner();
     var wd = window.WeaponData;
     var p = app.state.player;
     dom.armoryCashText.textContent = "$" + app.state.stats.cash.toLocaleString();
@@ -729,8 +794,17 @@
     }
 
     var remaining = st.zombies.length + app.wave.spawnQueue.length;
-    dom.waveText.textContent = "WAVE " + app.wave.number;
+    dom.waveText.textContent = app.mode === "sandbox"
+      ? (app.wave.number > 0 ? "SPAWN #" + app.wave.number : "SANDBOX")
+      : "WAVE " + app.wave.number;
     dom.zombiesText.textContent = remaining + " LEFT";
+
+    if (dom.suitBadge) {
+      var slv = p.exoSuitLevel || 0;
+      var sRom = ["", "SUIT MK-I", "SUIT MK-II", "SUIT MK-III", "SUIT MK-IV", "SUIT MK-V"];
+      dom.suitBadge.classList.toggle("hidden", slv <= 0);
+      if (slv > 0) dom.suitBadge.textContent = sRom[slv] || ("SUIT LV " + slv);
+    }
 
     dom.lowHpVignette.classList.toggle("hidden", p.hp > 32 || p.hp <= 0);
 
@@ -772,6 +846,9 @@
         dom.waveBanner.classList.add("hidden");
       }
     }
+
+    // In Sandbox mode, zombies only spawn when the user clicks SPAWN [H]
+    if (app.mode === "sandbox") return;
 
     if (app.wave.spawnQueue.length > 0) {
       app.wave.spawnTimer -= dt;
@@ -877,6 +954,9 @@
   }
 
   window.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA")) {
+      return;
+    }
     if (["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) >= 0) {
       if (app.phase === "playing" || app.phase === "armory") {
         e.preventDefault();
@@ -1170,6 +1250,24 @@
   dom.btnSurvival.addEventListener("click", function () { startRun("survival"); });
   dom.btnSandbox.addEventListener("click", function () { startRun("sandbox"); });
   dom.sandboxHordeBtn.addEventListener("click", spawnSandboxMegaHorde);
+  if (dom.sandboxClearBtn) {
+    dom.sandboxClearBtn.addEventListener("click", clearSandboxZombies);
+  }
+  if (dom.upgradeSuitBtn) {
+    dom.upgradeSuitBtn.addEventListener("click", function () {
+      if (!app.state) return;
+      var levels = window.GameEntities.EXO_SUIT_LEVELS || [];
+      var lv = app.state.player.exoSuitLevel || 0;
+      if (lv >= levels.length) return;
+      var cost = app.mode === "sandbox" ? 0 : levels[lv].cost;
+      if (app.state.stats.cash < cost) return;
+      app.state.stats.cash -= cost;
+      app.state.player.exoSuitLevel = lv + 1;
+      window.SoundEngine.playUpgrade();
+      renderArmory();
+      updateHud();
+    });
+  }
   if (dom.sandboxBuildBtn) {
     dom.sandboxBuildBtn.addEventListener("click", function () {
       setFortBuildActive(!app.build.active);

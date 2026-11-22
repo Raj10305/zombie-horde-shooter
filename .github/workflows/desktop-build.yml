@@ -1,0 +1,69 @@
+name: Build Desktop Apps (Windows EXE & macOS App)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Package web assets into www/
+        run: python build_www.py
+
+      - name: Install PyInstaller & pywebview
+        run: pip install pyinstaller pywebview
+
+      - name: Build Windows Standalone EXE
+        run: |
+          pyinstaller --noconfirm --onefile --windowed ^
+            --name DEADLINE-SKYFIRE ^
+            --add-data "www;www" ^
+            desktop_app.py
+
+      - name: Upload Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEADLINE-SKYFIRE-Windows-EXE
+          path: dist/DEADLINE-SKYFIRE.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Package web assets into www/
+        run: python build_www.py
+
+      - name: Install PyInstaller & pywebview
+        run: pip install pyinstaller pywebview
+
+      - name: Build macOS Standalone App Bundle
+        run: |
+          pyinstaller --noconfirm --windowed \
+            --name DEADLINE-SKYFIRE \
+            --add-data "www:www" \
+            desktop_app.py
+          cd dist
+          zip -r DEADLINE-SKYFIRE-macOS.zip DEADLINE-SKYFIRE.app
+
+      - name: Upload macOS App artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEADLINE-SKYFIRE-macOS-App
+          path: dist/DEADLINE-SKYFIRE-macOS.zip

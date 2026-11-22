@@ -348,6 +348,86 @@ body.controls-body {
   color: #0f172a;
 }
 
+.mode-tag.suit-tag {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.sandbox-spawner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sandbox-count-input {
+  width: 52px;
+  padding: 3px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #333333;
+  background: #ffffff;
+  color: #111111;
+  user-select: text;
+}
+
+.sandbox-type-select {
+  padding: 3px 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid #333333;
+  background: #ffffff;
+  color: #111111;
+}
+
+.btn-clear {
+  background: #475569;
+  border-color: #1e293b;
+}
+
+.btn-clear:hover {
+  background: #334155;
+}
+
+.exo-suit-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f0f9ff;
+  border: 1px solid #0284c7;
+}
+
+.exo-suit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.btn-suit-upgrade {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #0284c7;
+  color: #ffffff;
+  border: 1px solid #0369a1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-suit-upgrade:hover:not(:disabled) {
+  background: #0369a1;
+}
+
+.btn-suit-upgrade:disabled {
+  background: #cbd5e1;
+  color: #475569;
+  border-color: #94a3b8;
+  cursor: not-allowed;
+}
+
 .wave-title {
   font-size: 14px;
   font-weight: 700;
