@@ -50,17 +50,20 @@ jobs:
       - name: Install PyInstaller & pywebview
         run: pip install pyinstaller pywebview
 
-      - name: Build macOS Standalone App Bundle
+      - name: Build macOS Standalone App & DMG
         run: |
           pyinstaller --noconfirm --windowed \
             --name DEADLINE-SKYFIRE \
             --add-data "www:www" \
             desktop_app.py
-          cd dist
-          zip -r DEADLINE-SKYFIRE-macOS.zip DEADLINE-SKYFIRE.app
+          codesign --force --deep --sign - dist/DEADLINE-SKYFIRE.app || true
+          hdiutil create -volname "DEADLINE SKYFIRE" \
+            -srcfolder dist/DEADLINE-SKYFIRE.app \
+            -ov -format UDZO \
+            dist/DEADLINE-SKYFIRE-macOS.dmg
 
-      - name: Upload macOS App artifact
+      - name: Upload macOS DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DEADLINE-SKYFIRE-macOS-App
-          path: dist/DEADLINE-SKYFIRE-macOS.zip
+          name: DEADLINE-SKYFIRE-macOS-DMG
+          path: dist/DEADLINE-SKYFIRE-macOS.dmg
