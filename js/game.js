@@ -274,22 +274,48 @@
 
   function buildWaveQueue(waveNum, mode) {
     var queue = [];
-    var total = mode === "sandbox"
-      ? 36 + Math.min(110, waveNum * 12)
-      : 24 + Math.floor(waveNum * 10 + Math.pow(waveNum, 1.45));
-    var maxExploders = waveNum >= 3 ? Math.min(4, Math.max(1, Math.floor((waveNum - 1) / 2))) : 0;
+    var total;
+    if (mode === "sandbox") {
+      total = 36 + Math.min(110, waveNum * 12);
+    } else if (waveNum === 1) {
+      total = 10;
+    } else if (waveNum === 2) {
+      total = 16;
+    } else if (waveNum === 3) {
+      total = 23;
+    } else if (waveNum === 4) {
+      total = 32;
+    } else {
+      total = 20 + Math.floor(waveNum * 8.5 + Math.pow(waveNum, 1.38));
+    }
+
+    var maxExploders = waveNum >= 4 ? Math.min(4, Math.max(1, Math.floor((waveNum - 2) / 2))) : 0;
     var exploderCount = 0;
 
     for (var i = 0; i < total; i++) {
       var r = Math.random();
-      if (waveNum >= 3 && exploderCount < maxExploders && r < 0.05) {
-        queue.push("exploder");
-        exploderCount += 1;
-      } else if (waveNum >= 2 && r < 0.24) queue.push("brute");
-      else if (r < 0.38) queue.push("spitter");
-      else if (r < 0.50) queue.push("screamer");
-      else if (r < 0.76) queue.push("runner");
-      else queue.push("shambler");
+      if (mode === "survival" && waveNum === 1) {
+        queue.push(r < 0.20 ? "runner" : "shambler");
+      } else if (mode === "survival" && waveNum === 2) {
+        if (r < 0.16) queue.push("spitter");
+        else if (r < 0.44) queue.push("runner");
+        else queue.push("shambler");
+      } else if (mode === "survival" && waveNum === 3) {
+        if (r < 0.08) queue.push("brute");
+        else if (r < 0.23) queue.push("spitter");
+        else if (r < 0.35) queue.push("screamer");
+        else if (r < 0.62) queue.push("runner");
+        else queue.push("shambler");
+      } else {
+        if (waveNum >= 4 && exploderCount < maxExploders && r < 0.045) {
+          queue.push("exploder");
+          exploderCount += 1;
+        } else if (waveNum >= 3 && r < 0.22) queue.push("brute");
+        else if (r < 0.36) queue.push("spitter");
+        else if (r < 0.48) queue.push("screamer");
+        else if (r < 0.74) queue.push("runner");
+        else queue.push("shambler");
+      }
     }
 
     if (waveNum % 5 === 0) {
@@ -302,7 +328,7 @@
     app.wave.number += 1;
     var w = app.wave.number;
     app.wave.spawnQueue = buildWaveQueue(w, app.mode);
-    app.wave.spawnTimer = 0.2;
+    app.wave.spawnTimer = w === 1 ? 2.8 : 1.1;
 
     var hasBoss = w % 5 === 0;
     if (hasBoss) {
@@ -312,15 +338,15 @@
       var sub = app.mode === "sandbox"
         ? "SANDBOX WAVE • PRESS [H] FOR EXTRA MEGA-HORDE"
         : w === 1
-          ? "SWITCH WEAPONS [1-0] OR CALL AIRPLANES [8-0]!"
-          : "SURVIVAL CASH BONUS +$" + (80 + w * 25);
+          ? "GET READY — FIRST CONTACT IN 3 SECONDS • [1-0] WEAPONS, [B] ARMORY"
+          : "SURVIVAL CASH BONUS +$" + (100 + w * 25);
       showBanner("WAVE " + w, sub, 2.8);
       window.SoundEngine.playWaveStart();
     }
 
     if (w > 1 && app.mode === "survival") {
-      app.state.stats.cash += 80 + w * 25;
-      app.state.player.hp = Math.min(app.state.player.maxHp, app.state.player.hp + 15);
+      app.state.stats.cash += 100 + w * 25;
+      app.state.player.hp = Math.min(app.state.player.maxHp, app.state.player.hp + 20);
     }
   }
 
@@ -853,19 +879,25 @@
     if (app.wave.spawnQueue.length > 0) {
       app.wave.spawnTimer -= dt;
       if (app.wave.spawnTimer <= 0) {
-        var batch = Math.min(app.wave.spawnQueue.length, 2 + Math.floor(app.wave.number / 2));
+        var wNum = app.wave.number;
+        var batchSize = wNum <= 2 ? 1 : (1 + Math.floor((wNum - 1) / 2));
+        var batch = Math.min(app.wave.spawnQueue.length, batchSize);
         var bounds = getViewBounds();
-        var scale = 1 + (app.wave.number - 1) * 0.22;
+        var scale = wNum <= 2 ? 1.0 : (1.0 + (wNum - 2) * 0.18);
         for (var i = 0; i < batch; i++) {
           var zType = app.wave.spawnQueue.shift();
           window.GameEntities.spawnZombieAtEdge(app.state, zType, scale, bounds);
         }
-        app.wave.spawnTimer = Math.max(0.10, 0.45 - app.wave.number * 0.035);
+        var nextDelay = wNum === 1 ? 1.15
+          : wNum === 2 ? 0.85
+          : wNum === 3 ? 0.65
+          : Math.max(0.14, 0.70 - wNum * 0.045);
+        app.wave.spawnTimer = nextDelay;
       }
     } else if (app.state.zombies.length === 0) {
       if (app.wave.intermission <= 0) {
-        app.wave.intermission = 2.6;
-        showBanner("WAVE " + app.wave.number + " CLEARED!", "PREPARING NEXT WAVE...", 2.4);
+        app.wave.intermission = 4.5;
+        showBanner("WAVE " + app.wave.number + " CLEARED!", "OPEN ARMORY [B] TO UPGRADE — NEXT WAVE SOON...", 3.5);
       } else {
         app.wave.intermission -= dt;
         if (app.wave.intermission <= 0) {

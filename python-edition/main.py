@@ -96,29 +96,58 @@ class GameApp:
 
     def build_wave_queue(self, wave_num, mode):
         queue = []
-        total = (
-            36 + min(110, wave_num * 12)
-            if mode == "sandbox"
-            else 24 + int(wave_num * 10 + (wave_num ** 1.45))
-        )
-        max_exploders = min(4, max(1, (wave_num - 1) // 2)) if wave_num >= 3 else 0
+        if mode == "sandbox":
+            total = 36 + min(110, wave_num * 12)
+        elif wave_num == 1:
+            total = 10
+        elif wave_num == 2:
+            total = 16
+        elif wave_num == 3:
+            total = 23
+        elif wave_num == 4:
+            total = 32
+        else:
+            total = 20 + int(wave_num * 8.5 + (wave_num ** 1.38))
+
+        max_exploders = min(4, max(1, (wave_num - 2) // 2)) if wave_num >= 4 else 0
         exploder_count = 0
 
         for _ in range(total):
             r = random.random()
-            if wave_num >= 3 and exploder_count < max_exploders and r < 0.05:
-                queue.append("exploder")
-                exploder_count += 1
-            elif wave_num >= 2 and r < 0.24:
-                queue.append("brute")
-            elif r < 0.38:
-                queue.append("spitter")
-            elif r < 0.50:
-                queue.append("screamer")
-            elif r < 0.76:
-                queue.append("runner")
+            if mode == "survival" and wave_num == 1:
+                queue.append("runner" if r < 0.20 else "shambler")
+            elif mode == "survival" and wave_num == 2:
+                if r < 0.16:
+                    queue.append("spitter")
+                elif r < 0.44:
+                    queue.append("runner")
+                else:
+                    queue.append("shambler")
+            elif mode == "survival" and wave_num == 3:
+                if r < 0.08:
+                    queue.append("brute")
+                elif r < 0.23:
+                    queue.append("spitter")
+                elif r < 0.35:
+                    queue.append("screamer")
+                elif r < 0.62:
+                    queue.append("runner")
+                else:
+                    queue.append("shambler")
             else:
-                queue.append("shambler")
+                if wave_num >= 4 and exploder_count < max_exploders and r < 0.045:
+                    queue.append("exploder")
+                    exploder_count += 1
+                elif wave_num >= 3 and r < 0.22:
+                    queue.append("brute")
+                elif r < 0.36:
+                    queue.append("spitter")
+                elif r < 0.48:
+                    queue.append("screamer")
+                elif r < 0.74:
+                    queue.append("runner")
+                else:
+                    queue.append("shambler")
 
         if wave_num % 5 == 0:
             queue.insert(0, "boss")
@@ -128,7 +157,7 @@ class GameApp:
         self.wave["number"] += 1
         w = self.wave["number"]
         self.wave["queue"] = self.build_wave_queue(w, self.mode)
-        self.wave["spawn_timer"] = 0.2
+        self.wave["spawn_timer"] = 2.8 if w == 1 else 1.1
 
         if w % 5 == 0:
             self.show_banner(f"WAVE {w} - BOSS INBOUND", "NECRO TITAN DETECTED - USE HEAVY & AIR SUPPORT!", 3.4)
@@ -137,15 +166,15 @@ class GameApp:
             if self.mode == "sandbox":
                 sub = "SANDBOX WAVE - PRESS [H] FOR EXTRA MEGA-HORDE"
             elif w == 1:
-                sub = "SWITCH WEAPONS [1-0] OR CALL AIRPLANES [8-0]!"
+                sub = "GET READY - FIRST CONTACT IN 3 SECONDS - [1-0] WEAPONS, [B] ARMORY"
             else:
-                sub = f"SURVIVAL CASH BONUS +${80 + w * 25}"
+                sub = f"SURVIVAL CASH BONUS +${100 + w * 25}"
             self.show_banner(f"WAVE {w}", sub, 2.8)
             self.sound.play_wave_start()
 
         if w > 1 and self.mode == "survival":
-            self.state.stats.cash += 80 + w * 25
-            self.state.player.hp = min(float(self.state.player.max_hp), self.state.player.hp + 15.0)
+            self.state.stats.cash += 100 + w * 25
+            self.state.player.hp = min(float(self.state.player.max_hp), self.state.player.hp + 20.0)
 
     def spawn_sandbox_mega_horde(self):
         if not self.state or self.phase != "playing":
@@ -440,16 +469,25 @@ class GameApp:
         if self.wave["queue"]:
             self.wave["spawn_timer"] -= dt
             if self.wave["spawn_timer"] <= 0:
-                batch = min(len(self.wave["queue"]), 2 + self.wave["number"] // 2)
+                w_num = self.wave["number"]
+                batch_size = 1 if w_num <= 2 else (1 + (w_num - 1) // 2)
+                batch = min(len(self.wave["queue"]), batch_size)
                 bounds = self._view_bounds()
-                scale = 1.0 + (self.wave["number"] - 1) * 0.22
+                scale = 1.0 if w_num <= 2 else (1.0 + (w_num - 2) * 0.18)
                 for _ in range(batch):
                     entities.spawn_zombie_at_edge(self.state, self.wave["queue"].pop(0), scale, bounds)
-                self.wave["spawn_timer"] = max(0.10, 0.45 - self.wave["number"] * 0.035)
+                if w_num == 1:
+                    self.wave["spawn_timer"] = 1.15
+                elif w_num == 2:
+                    self.wave["spawn_timer"] = 0.85
+                elif w_num == 3:
+                    self.wave["spawn_timer"] = 0.65
+                else:
+                    self.wave["spawn_timer"] = max(0.14, 0.70 - w_num * 0.045)
         elif not self.state.zombies:
             if self.wave["intermission"] <= 0:
-                self.wave["intermission"] = 2.6
-                self.show_banner(f"WAVE {self.wave['number']} CLEARED!", "PREPARING NEXT WAVE...", 2.4)
+                self.wave["intermission"] = 4.5
+                self.show_banner(f"WAVE {self.wave['number']} CLEARED!", "OPEN ARMORY [B] TO UPGRADE - NEXT WAVE SOON...", 3.5)
             else:
                 self.wave["intermission"] -= dt
                 if self.wave["intermission"] <= 0:
