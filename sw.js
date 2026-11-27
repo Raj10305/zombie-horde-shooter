@@ -1,4 +1,4 @@
-var CACHE_NAME = "skyfire-ios-v1";
+var CACHE_NAME = "skyfire-web-v2";
 var ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -60,18 +60,18 @@ self.addEventListener("activate", function (event) {
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      if (cached) return cached;
-      return fetch(event.request).then(function (resp) {
-        if (!resp || resp.status !== 200 || resp.type !== "basic") {
-          return resp;
+    fetch(event.request)
+      .then(function (resp) {
+        if (resp && resp.status === 200 && resp.type === "basic") {
+          var copy = resp.clone();
+          caches.open(CACHE_NAME).then(function (cache) {
+            cache.put(event.request, copy);
+          });
         }
-        var copy = resp.clone();
-        caches.open(CACHE_NAME).then(function (cache) {
-          cache.put(event.request, copy);
-        });
         return resp;
-      });
-    })
+      })
+      .catch(function () {
+        return caches.match(event.request);
+      })
   );
 });

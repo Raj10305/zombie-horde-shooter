@@ -1,13 +1,17 @@
 # DEADLINE: SKYFIRE — 2D Zombie Horde Shooter
 
-A fast-paced, zero-dependency 2D top-down zombie horde shooter where you can freely pick and combine firearms, heavy sci-fi weapons, attack airplanes, carpet bombers, gunship helicopters, automated turrets, and orbital ion lasers.
+**Play Live in Your Browser:** https://raj10305.github.io/zombie-horde-shooter/
+
+A fast-paced, zero-dependency 2D top-down zombie horde shooter where you can freely combine firearms, heavy sci-fi weapons, attack airplanes, carpet bombers, gunship helicopters, automated turrets, orbital ion lasers, an autonomous Exo-Suit defense system, and a Sandbox Fort Builder.
 
 ## How to Play
-Double-click **`index.html`** in this folder to launch the game directly in any modern browser (Chrome, Edge, Firefox) — no server or installation required.
+- **Online (No Install)**: Open **https://raj10305.github.io/zombie-horde-shooter/** on desktop or mobile (works as an installable PWA on iOS & Android too).
+- **Offline / Local**: Double-click **`index.html`** in this folder, or download standalone **Windows (`.exe`)**, **macOS (`.dmg`)**, **Android (`.apk`)**, and **iOS (`.ipa`)** builds from the **Actions** tab.
 
-## Game Modes
-- **Survival Waves**: All 10 primary weapons are unlocked from Wave 1. Earn cash from zombie kills and wave bonuses to upgrade guns and unlock multi-plane formations (2-jet & 3-jet A-10 squadrons, dual B-52 bombers). Defeat Necro Titan bosses every 5 waves.
-- **Sandbox Chaos**: Start with `$99,999`, ultra-fast airplane & bomber cooldowns, and a **`+ HORDE [H]`** button to spawn massive swarms whenever you want.
+## Game Modes & Arenas
+- **2 Arenas**: **Military Outpost** and **Abandoned City** (pixel-art ruins, rusted buses, flipped cars, and overgrown shipping containers).
+- **Survival Waves**: Gradual warm-up into escalating hordes with 7 enemy archetypes (Shamblers, Crimson Runners, Armored Brutes, Bile Spitters, Sonic Screamers, Volatile Boomers, and Necro Titan bosses every 5 waves). Earn cash to upgrade weapons and install the 5-tier **Exo-Suit Self-Defense System** (`MK-I` Micro-Guns → `MK-II` Arc Repulsors → `MK-III` Shoulder Rockets → `MK-IV` Dual Salvo → `MK-V` Chest Unibeam).
+- **Sandbox Mode**: Starts with `$99,999`, zero auto-spawning, a **Custom Zombie Spawner** (choose count `1–250` & type), and a **Fort Builder `[F]`** to place Wooden Walls, Reinforced Walls, Fort Gates, Barbed Wire, and 5 weaponized defense turret types (MG, Shotgun, Flame, Tesla, Rocket).
 
 ## Controls
 - **WASD / Arrow Keys**: Move
